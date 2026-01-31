@@ -33,11 +33,6 @@
         };
       in
       {
-        packages = rec {
-          default = mdv;
-          mdv = pkgs.callPackage ./nix/build.nix { static = true; };
-        };
-
         devShells.default = pkgs.mkShell {
           packages =
             (with pkgs; [
