@@ -13,14 +13,12 @@ jobs:
       - uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: experimental-features = nix-command flakes
-
       - name: Restore Nix store
         id: nix-cache
         uses: nix-community/cache-nix-action/restore@v7
         with:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('**/flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
-
       - name: Restore Cargo cache
         id: cargo-cache
         uses: actions/cache/restore@v4
@@ -33,16 +31,12 @@ jobs:
             target/
           key: cargo-${{ runner.os }}-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: cargo-${{ runner.os }}-
-
       - name: Run nix flake check
         run: nix flake check
-
       - name: Run tests
         run: nix develop --command cargo test
-
       - name: Run clippy
         run: nix develop --command cargo clippy -- -D warnings
-
       - name: Save Cargo cache
         if: always()
         uses: actions/cache/save@v4
@@ -54,7 +48,6 @@ jobs:
             ~/.cargo/git/db/
             target/
           key: ${{ steps.cargo-cache.outputs.cache-primary-key }}
-
       - name: Save Nix store
         if: always()
         uses: nix-community/cache-nix-action/save@v7
