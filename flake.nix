@@ -38,14 +38,7 @@
             (with pkgs; [
               nil
               nixd
-              nixfmt
-              typst
-              mermaid-cli
-              fira-mono
               cargo-release
-              stdenv.cc.cc.lib
-              bun
-              just
             ])
             ++ [
               toolchain
