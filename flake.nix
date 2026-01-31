@@ -48,7 +48,7 @@
               just
             ])
             ++ [
-              toolchain.defaultToolchain
+              toolchain
             ];
         };
 
