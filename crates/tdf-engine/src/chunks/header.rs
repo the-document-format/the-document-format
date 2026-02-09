@@ -12,10 +12,13 @@ pub struct HeaderChunk<'a> {
     document_title: &'a str,
     /// The creation date of the document
     creation_date: Instant,
+    /// Offsets corresponding to all other chunks in the document.
+    chunks: ChunkOffsets,
 }
 
 /// Offsets corresponding to all other chunks in the document.
-pub struct Chunks {
+#[derive(Serialize, Deserialize, Debug)]
+pub struct ChunkOffsets {
     pages_offset: u64,
     store_offset: u64,
     trailer_offset: u64,

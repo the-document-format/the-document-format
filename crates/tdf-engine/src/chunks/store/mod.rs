@@ -11,8 +11,17 @@ mod primatives;
 use serde::{Deserialize, Serialize};
 
 use crate::chunks::store::{
-    page_data::PageData, primatives::{FontItem, ImageItem, TextItem, VectorItem}
+    page_data::PageData,
+    primatives::{FontItem, ImageItem, TextItem, VectorItem},
 };
+
+use thiserror::Error;
+
+#[derive(Error, Debug)]
+pub enum StoreChunkError {
+    #[error("Index {index} is out of bounds for store item collection of size {size}")]
+    IndexOutOfBounds { index: usize, size: usize },
+}
 
 /// The top level container storing all of the store chunks.
 ///
@@ -21,7 +30,46 @@ use crate::chunks::store::{
 /// or a pointer to actual data.
 #[derive(Serialize, Deserialize, Debug)]
 pub struct StoreChunk {
+    items: StoreItemCollection,
+}
+
+/// This is a thin wrapper on a collection of many store items.
+///
+/// Eventually we will want to maintain various optimizations as we update this,
+/// so we want to be in control of the interface.
+#[derive(Serialize, Deserialize, Debug)]
+pub struct StoreItemCollection {
     items: Vec<StoreItemCell>,
+}
+
+impl StoreItemCollection {
+    pub fn iter(&self) -> impl Iterator<Item = &StoreItemCell> {
+        self.items.iter()
+    }
+
+    pub fn len(&self) -> usize {
+        self.items.len()
+    }
+
+    pub fn get(&self, index: usize) -> Option<&StoreItemCell> {
+        self.items.get(index)
+    }
+
+    pub fn set(
+        &mut self,
+        index: usize,
+        item: StoreItemCell,
+    ) -> Result<(), StoreChunkError> {
+        if index < self.items.len() {
+            self.items[index] = item;
+            Ok(())
+        } else {
+            Err(StoreChunkError::IndexOutOfBounds {
+                index,
+                size: self.items.len(),
+            })
+        }
+    }
 }
 
 /// An entry in the global store.
@@ -35,7 +83,7 @@ pub struct StoreItemCell {
 #[derive(Serialize, Deserialize, Debug)]
 pub enum StoreItemRef {
     Primative(StoreItemPrimative),
-    StoreItems(Vec<StoreItemCell>),
+    StoreItems(StoreItemCollection),
 }
 
 /// The different categories of store items.

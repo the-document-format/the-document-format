@@ -1,4 +1,4 @@
-//! This is where all of the core primative itms
+//! This is where definitions for all core primative data items live.
 
 use serde::{Deserialize, Serialize};
 
@@ -11,15 +11,30 @@ pub struct ImageItem {
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct VectorItem {
+    tags: VectorTags,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct VectorTags {
     // TODO
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct TextItem {
+    tags: TextTags,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct TextTags {
     // TODO
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct FontItem {
+    tags: FontTags,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+pub struct FontTags {
     // TODO
 }

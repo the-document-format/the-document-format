@@ -9,3 +9,5 @@ edition = "2021"
 arrayvec = "0.7.6"
 serde = { version = "1.0.228", features = ["derive"] }
 derive_more = { version = "1.0.0", features = ["constructor"] }
+serde_json = "1.0.149"
+thiserror = "2.0.18"
