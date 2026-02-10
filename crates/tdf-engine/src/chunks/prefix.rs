@@ -3,26 +3,48 @@
 //! Metadata about the actual semantic information contained in the document
 //! should go in the header, not in the prefix.
 
-/// Magic bits to identify a TDF file.
-///
-/// These are ascii so they appear in hexdump.
-pub const MAGIC_BITS: [u8; 3] = [b't', b'd', b'f'];
+use derive_more::derive::Constructor;
+use serde::{Deserialize, Serialize};
 
-pub struct PreludeChunk {
+/// Magic bits to identify a TDF file. "Trev" stands for "Trevor."
+///
+/// These are ASCII so they appear in hexdump.
+pub const MAGIC_BYTES: [u8; 6] = [b'T', b'R', b'E', b'V', b'D', b'F'];
+
+pub struct HeaderChunk {
     /// Magic bits to identify a TDF file.
-    magic_bits: [u8; 3],
+    magic_bytes: [u8; 6],
     /// The version of TDF that this file is for.
-    version: u16,
+    version: u8,
     /// The length of the entire file, including the prelude.
     file_len: u64,
+    /// The compression mode to use for the rest of file.
+    compression: Compression,
+    /// All offsets corresponding to other chunks in the document.
+    chunk_offsets: ChunkOffsets,
 }
 
-impl PreludeChunk {
-    pub fn new(len: u64) -> Self {
+/// Offsets corresponding to all other chunks in the document.
+#[derive(Serialize, Deserialize, Debug, Constructor)]
+pub struct ChunkOffsets {
+    /// The start byte for the region where pages are stored.
+    pages_offset: u64,
+    /// The start byte for the region where the store is stored.
+    store_offset: u64,
+}
+
+enum Compression {
+    None,
+}
+
+impl HeaderChunk {
+    pub fn new(file_len: u64, chunk_offsets: ChunkOffsets) -> Self {
         Self {
-            magic_bits: MAGIC_BITS,
+            magic_bytes: MAGIC_BYTES,
             version: 1,
-            file_len: len,
+            file_len,
+            compression: Compression::None,
+            chunk_offsets,
         }
     }
 }

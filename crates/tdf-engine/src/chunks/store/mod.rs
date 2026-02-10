@@ -55,11 +55,7 @@ impl StoreItemCollection {
         self.items.get(index)
     }
 
-    pub fn set(
-        &mut self,
-        index: usize,
-        item: StoreItemCell,
-    ) -> Result<(), StoreChunkError> {
+    pub fn set(&mut self, index: usize, item: StoreItemCell) -> Result<(), StoreChunkError> {
         if index < self.items.len() {
             self.items[index] = item;
             Ok(())

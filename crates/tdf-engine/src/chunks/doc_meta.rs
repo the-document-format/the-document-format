@@ -1,36 +1,31 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    misc::{Instant, PageAnchor, PageRef},
-    tags::Tag,
-};
+use crate::misc::{Instant, PageAnchor, PageRef};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct HeaderChunk<'a> {
-    tags: HeaderTags<'a>,
+pub struct DocMetaChunk<'a> {
     /// The title of the document
-    document_title: &'a str,
-    /// The creation date of the document
-    creation_date: Instant,
-    /// Offsets corresponding to all other chunks in the document.
-    chunks: ChunkOffsets,
+    document_title: Option<&'a str>,
+    /// Search index for the file.
+    index: Option<SearchIndex>,
+    /// The table of contents.
+    table_of_contents: Option<TableOfContents<'a>>,
+    /// All tags relating to the overall document.
+    tags: HeaderTags<'a>,
 }
 
-/// Offsets corresponding to all other chunks in the document.
 #[derive(Serialize, Deserialize, Debug)]
-pub struct ChunkOffsets {
-    pages_offset: u64,
-    store_offset: u64,
-    trailer_offset: u64,
+pub struct SearchIndex {
+    // TODO
 }
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(bound(deserialize = "'de: 'a"))]
 pub struct HeaderTags<'a> {
     /// All authors of the document
-    authors: Tag<Vec<&'a str>>,
-    /// The table of contents.
-    table_of_contents: Tag<TableOfContents<'a>>,
+    authors: Option<Vec<&'a str>>,
+    /// The creation date of the document
+    creation_date: Option<Instant>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -45,5 +40,5 @@ pub struct SectionDescription<'a> {
     depth: u8,
     page_number: PageRef,
     /// Pointer to an item on the page that the section starts at.
-    ancher: Tag<PageAnchor>,
+    ancher: Option<PageAnchor>,
 }
