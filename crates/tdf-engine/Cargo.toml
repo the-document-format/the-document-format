@@ -1,4 +1,5 @@
 [lib]
+path = "src/mod.rs"
 
 [package]
 name = "tdf-engine"
@@ -10,3 +11,7 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 derive_more = { version = "1.0.0", features = ["constructor"] }
 thiserror = "2.0.18"
+
+[lints.rust]
+dead_code = "allow"
+unused_variables = "allow"

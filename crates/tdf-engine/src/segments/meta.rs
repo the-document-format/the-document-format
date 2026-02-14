@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::misc::{Instant, PageAnchor, PageRef};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct DocMetaChunk<'a> {
+pub struct MetaSegment<'a> {
     /// The title of the document
     document_title: Option<&'a str>,
     /// Search index for the file.
@@ -12,6 +12,17 @@ pub struct DocMetaChunk<'a> {
     table_of_contents: Option<TableOfContents<'a>>,
     /// All tags relating to the overall document.
     tags: HeaderTags<'a>,
+}
+
+impl MetaSegment<'_> {
+    pub fn new() -> Self {
+        Self {
+            document_title: None,
+            index: None,
+            table_of_contents: None,
+            tags: HeaderTags::new(),
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -26,6 +37,15 @@ pub struct HeaderTags<'a> {
     authors: Option<Vec<&'a str>>,
     /// The creation date of the document
     creation_date: Option<Instant>,
+}
+
+impl HeaderTags<'_> {
+    pub fn new() -> Self {
+        Self {
+            authors: None,
+            creation_date: None,
+        }
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
