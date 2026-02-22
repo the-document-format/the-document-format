@@ -6,6 +6,8 @@
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
 
+use crate::segments::Segment;
+
 /// Magic bits to identify a TDF file. "Trev" stands for "Trevor."
 ///
 /// These are ASCII so they appear in hexdump.
@@ -24,6 +26,8 @@ pub struct HeaderSegment {
     /// All offsets corresponding to other segments in the document.
     segment_offsets: SegmentOffsets,
 }
+
+impl Segment for HeaderSegment {}
 
 /// Offsets corresponding to all other segments in the document.
 #[derive(Serialize, Deserialize, Debug, Constructor)]
