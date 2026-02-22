@@ -12,6 +12,7 @@ pub mod store;
 pub mod suffix;
 pub mod wire;
 
+/// Marker trait that we can impl other things on. All segments should impl it.
 pub trait Segment {}
 
 pub trait SegmentReadWrite: Sized {
