@@ -8,7 +8,7 @@
 pub mod data_store;
 pub mod page_store;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, marker::PhantomData};
 
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
@@ -59,7 +59,7 @@ pub struct StoreSegment<'a, T: PrimativeType<'a>, U: UniqueType<'a>> {
 pub struct StoreItemCollection<'a, T: PrimativeType<'a>, U: UniqueType<'a>> {
     items: Vec<StoreItemCell<'a, T, U>>,
     handles: HashMap<StoreHandle<'a, T, U>, StorePointer<'a, T, U>>,
-    _phantom: std::marker::PhantomData<&'a ()>,
+    _phantom: PhantomData<&'a ()>,
 }
 
 impl<'a, T: PrimativeType<'a>, U: UniqueType<'a>> Default for StoreItemCollection<'a, T, U> {
@@ -67,7 +67,7 @@ impl<'a, T: PrimativeType<'a>, U: UniqueType<'a>> Default for StoreItemCollectio
         Self {
             items: Vec::new(),
             handles: HashMap::new(),
-            _phantom: std::marker::PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -156,7 +156,7 @@ pub struct StoreItemCell<'a, T: PrimativeType<'a>, U: UniqueType<'a>> {
     /// Either the content inside the store item or a pointer to a real store item.
     pub content: StoreItemRef<'a, T, U>,
     #[serde(skip)]
-    _phantom: std::marker::PhantomData<&'a ()>,
+    _phantom: PhantomData<&'a ()>,
 }
 
 /// Either a real store item, or a pointer to a real store item.
@@ -174,7 +174,7 @@ pub enum StoreItemRef<'a, T: PrimativeType<'a>, U: UniqueType<'a>> {
 pub struct StorePointerGroup<'a, T: PrimativeType<'a>, U: UniqueType<'a>> {
     pointer: Vec<StorePointer<'a, T, U>>,
     #[serde(skip)]
-    _phantom: std::marker::PhantomData<(T, U)>,
+    _phantom: PhantomData<(T, U)>,
 }
 
 impl<'a, T: PrimativeType<'a>, U: UniqueType<'a>> StorePointerGroup<'a, T, U> {
@@ -189,14 +189,14 @@ impl<'a, T: PrimativeType<'a>, U: UniqueType<'a>> StorePointerGroup<'a, T, U> {
 pub struct StoreHandle<'a, T: PrimativeType<'a>, U: UniqueType<'a>> {
     pointer: StorePointer<'a, T, U>,
     #[serde(skip)]
-    _phantom: std::marker::PhantomData<(T, U)>,
+    _phantom: PhantomData<(T, U)>,
 }
 
 impl<'a, T: PrimativeType<'a>, U: UniqueType<'a>> StoreHandle<'a, T, U> {
     pub fn new(pointer: StorePointer<'a, T, U>) -> Self {
         StoreHandle {
             pointer,
-            _phantom: std::marker::PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -206,14 +206,14 @@ impl<'a, T: PrimativeType<'a>, U: UniqueType<'a>> StoreHandle<'a, T, U> {
 pub struct StorePointer<'a, T: PrimativeType<'a>, U: UniqueType<'a>> {
     index: usize,
     #[serde(skip)]
-    _phantom: std::marker::PhantomData<(T, U, &'a ())>,
+    _phantom: PhantomData<(T, U, &'a ())>,
 }
 
 impl<'a, T: PrimativeType<'a>, U: UniqueType<'a>> From<usize> for StorePointer<'a, T, U> {
     fn from(index: usize) -> Self {
         StorePointer {
             index,
-            _phantom: std::marker::PhantomData,
+            _phantom: PhantomData,
         }
     }
 }
@@ -230,10 +230,9 @@ impl<'a, T: PrimativeType<'a>, U: UniqueType<'a>> StorePointer<'a, T, U> {
 #[serde(bound(deserialize = "'de: 'a"))]
 pub struct StoreItemRange<'a, T: PrimativeType<'a>, U: UniqueType<'a>> {
     start: StorePointer<'a, T, U>,
-    // vec of Os
     len: usize,
     #[serde(skip)]
-    _phantom: std::marker::PhantomData<(T, U)>,
+    _phantom: PhantomData<(T, U)>,
 }
 
 #[cfg(test)]

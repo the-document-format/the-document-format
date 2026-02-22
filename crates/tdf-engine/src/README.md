@@ -27,7 +27,7 @@ The store is generic on T and U, where:
 - **U**: The enum of all actual primitive data types (fonts, text, images, shapes, etc.)
 
 The actual way that we store this data involves:
-- **a "store" container**: This is the highest level container that stores everything. It is a vector of references to store items. We have a **store reader** that is able to (eventually, right now not implemented) lazily load arbitrary store items.
+- **a "store" container**: This is the highest level container that stores everything. It is a vector of pointers to store items. We have a **store reader** that is able to (eventually, right now not implemented) lazily load arbitrary store items.
 - **a "store item" container**: Every item in the store contains the actual store item reference, which is either a *primative* or a pointer to another item in the store which is one, and in the higher level store array, an item of T that stores non-internable metadata.
 - **the "primative" items**: This is a piece of actual data of type U. It could be a font, segments of text, image, shape, or really anything.
 
