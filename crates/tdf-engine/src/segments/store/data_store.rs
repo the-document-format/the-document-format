@@ -1,24 +1,33 @@
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
 
-use crate::segments::store::StoreItemCollection;
+use crate::segments::store::{PrimativeType, StoreItemCollection, UniqueType};
 
 #[derive(Debug, Serialize, Deserialize, Constructor, Default)]
-pub struct DataStore {
-    pages: StoreItemCollection<DataItemPrimative>,
+#[serde(bound(deserialize = "'de: 'a"))]
+pub struct DataStore<'a> {
+    pages: StoreItemCollection<'a, DataItemPrimative, DataItemUnique>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+impl<'a> UniqueType<'a> for DataItemUnique {}
+
+/// Data items have no non-internable properties right now.
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+struct DataItemUnique;
+
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub enum DataItemPrimative {
     Font(FontItem),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+impl<'a> PrimativeType<'a> for DataItemPrimative {}
+
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 pub struct FontItem {
     tags: FontTags,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Hash)]
 pub struct FontTags {
     // TODO
 }

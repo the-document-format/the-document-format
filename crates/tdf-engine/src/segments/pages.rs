@@ -1,17 +1,22 @@
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
 
-use crate::segments::store::{page_store::PageItemPrimative, StoreItemRef};
+use crate::segments::store::{
+    StoreItemRef,
+    page_store::{PageItemPrimative, PageItemUnique},
+};
 
 #[derive(Serialize, Deserialize, Debug, Constructor)]
-pub struct PagesSegment {
-    item: StoreItemRef<PageItemPrimative>,
+#[serde(bound(deserialize = "'de: 'a"))]
+pub struct PagesSegment<'a> {
+    item: StoreItemRef<'a, PageItemPrimative, PageItemUnique>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct Page {
+#[serde(bound(deserialize = "'de: 'a"))]
+pub struct Page<'a> {
     tags: PageTags,
-    items: Vec<StoreItemRef<PageItemPrimative>>,
+    items: Vec<StoreItemRef<'a, PageItemPrimative, PageItemUnique>>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -31,7 +31,6 @@ The actual way that we store this data involves:
 - **a "store item" container**: Every item in the store contains the actual store item reference, which is either a *primative* or a pointer to another item in the store which is one, and in the higher level store array, an item of T that stores non-internable metadata.
 - **the "primative" items**: This is a piece of actual data of type U. It could be a font, segments of text, image, shape, or really anything.
 
-
 We store a little bit of higher-level transformation metadata in these pointers that lives above the actual primative data.
 
 Consider a page that has a few images on it, followed by another page with more images, where one image on the second page is the exact same image, except maybe in a slightly different position.

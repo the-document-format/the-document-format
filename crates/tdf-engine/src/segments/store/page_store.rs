@@ -1,45 +1,55 @@
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
 
-use crate::segments::store::StoreItemCollection;
+use crate::segments::store::{PrimativeType, StoreItemCollection, UniqueType};
 
 #[derive(Debug, Serialize, Deserialize, Constructor, Default)]
-pub struct PagesStore {
-    pages: StoreItemCollection<PageItemPrimative>,
+#[serde(bound(deserialize = "'de: 'a"))]
+pub struct PagesStore<'a> {
+    pages: StoreItemCollection<'a, PageItemPrimative, PageItemUnique>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Debug, Serialize, Deserialize, Constructor, Hash, PartialEq, Eq)]
+pub struct PageItemUnique {
+    pub position: Position,
+}
+
+impl<'a> UniqueType<'a> for PageItemUnique {}
+
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub enum PageItemPrimative {
     Image(ImageItem),
     Vector(VectorItem),
     Text(TextItem),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+impl<'a> PrimativeType<'a> for PageItemPrimative {}
+
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct ImageItem {
     width: u32,
     height: u32,
     data: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct VectorItem {
     tags: VectorTags,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct VectorTags {
-    // TODO
+    haah: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct TextItem {
     tags: TextTags,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct TextTags {
-    // TODO
+    haah: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Constructor)]
@@ -49,15 +59,15 @@ pub struct PageData {
 }
 
 /// The position of an item on a page.
-#[derive(Serialize, Deserialize, Constructor)]
-struct Position(f64, f64);
+#[derive(Serialize, Deserialize, Constructor, Debug, Hash, PartialEq, Eq)]
+pub struct Position(u64, u64);
 
 impl Position {
-    fn x(&self) -> f64 {
+    fn x(&self) -> u64 {
         self.0
     }
 
-    fn y(&self) -> f64 {
+    fn y(&self) -> u64 {
         self.1
     }
 }
