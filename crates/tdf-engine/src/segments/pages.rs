@@ -2,8 +2,8 @@ use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
 
 use crate::segments::store::{
-    page_store::{PageItemPrimative, PageItemUnique},
     StoreItemRef,
+    page_store::{PageItemPrimative, PageItemUnique},
 };
 
 #[derive(Serialize, Deserialize, Debug, Constructor)]
