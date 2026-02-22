@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::misc::{Instant, PageAnchor, PageRef};
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct MetaSegment<'a> {
     /// The title of the document
     document_title: Option<&'a str>,
@@ -14,38 +14,18 @@ pub struct MetaSegment<'a> {
     tags: HeaderTags<'a>,
 }
 
-impl MetaSegment<'_> {
-    pub fn new() -> Self {
-        Self {
-            document_title: None,
-            index: None,
-            table_of_contents: None,
-            tags: HeaderTags::new(),
-        }
-    }
-}
-
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SearchIndex {
     // TODO
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 #[serde(bound(deserialize = "'de: 'a"))]
 pub struct HeaderTags<'a> {
     /// All authors of the document
     authors: Option<Vec<&'a str>>,
     /// The creation date of the document
     creation_date: Option<Instant>,
-}
-
-impl HeaderTags<'_> {
-    pub fn new() -> Self {
-        Self {
-            authors: None,
-            creation_date: None,
-        }
-    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
