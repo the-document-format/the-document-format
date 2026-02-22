@@ -1,5 +1,5 @@
 use crate::segments::{
-    SegmentReadWrite, SegmentSerdeError, header::HeaderSegment, meta::MetaSegment,
+    SegmentReadWrite, header::HeaderSegment, meta::MetaSegment, wire::tdfi_rw::SegmentSerdeError,
 };
 
 #[derive(Debug, thiserror::Error)]
