@@ -28,9 +28,7 @@ The store is generic on T and U, where:
 
 The actual way that we store this data involves:
 - **a "store" container**: This is the highest level container that stores everything. It is a vector of pointers to store items. We have a **store reader** that is able to (eventually, right now not implemented) lazily load arbitrary store items.
-- **a "store item" container**: Every item in the store contains the actual store item reference, which is either a *primative* or a pointer to another item in the store which is one, and in the higher level store array, an item of T that stores non-internable metadata.
+- **a "store item" container**: Every item in the store contains the actual store item reference, which is either a *primative* or a pointer to another item in the store which is one.
 - **the "primative" items**: This is a piece of actual data of type U. It could be a font, segments of text, image, shape, or really anything.
 
-We store a little bit of higher-level transformation metadata in these pointers that lives above the actual primative data.
-
-Consider a page that has a few images on it, followed by another page with more images, where one image on the second page is the exact same image, except maybe in a slightly different position.
+Every store pointer must also store a **U**, which is the non-interable stuff unique to that *view* of the data. For example, page 1 in some document might include an image in the top left corner. Page 1's item pointer points to a slice of store items, each of which in the common case will be pointers to the actual primative store items (which contain no positional information), alongside the necessary positional information to be able to display them on the page.
