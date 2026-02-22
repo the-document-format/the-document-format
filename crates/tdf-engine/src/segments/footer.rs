@@ -2,12 +2,12 @@ use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct FooterSegement {
+pub struct FooterSegment {
     signatures: Signature,
     checksum: Checksum,
 }
 
-impl FooterSegement {
+impl FooterSegment {
     pub fn new() -> Self {
         Self {
             signatures: Signature::new(),
