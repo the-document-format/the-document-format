@@ -38,9 +38,7 @@ pub struct VectorItem {
 }
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
-pub struct VectorTags {
-    haah: String,
-}
+pub struct VectorTags {}
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
 pub struct TextItem {
@@ -48,9 +46,7 @@ pub struct TextItem {
 }
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
-pub struct TextTags {
-    haah: String,
-}
+pub struct TextTags {}
 
 #[derive(Serialize, Deserialize, Debug, Constructor)]
 pub struct PageData {
