@@ -23,7 +23,7 @@
       system:
       let
         pkgs = import nixpkgs { inherit system; };
-        toolchain = fenix.packages.${system}.default.toolchain;
+        toolchain = fenix.packages.${system}.complete.toolchain;
         treefmtEval = treefmt.lib.evalModule pkgs {
           projectRootFile = "flake.nix";
           programs.nixfmt.enable = true;
