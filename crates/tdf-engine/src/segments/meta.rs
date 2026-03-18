@@ -1,9 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    misc::{Instant, PageAnchor, PageRef},
-    segments::Segment,
-};
+use crate::misc::{Instant, PageAnchor, PageRef};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct MetaSegment<'a> {
@@ -16,8 +13,6 @@ pub struct MetaSegment<'a> {
     /// All tags relating to the overall document.
     tags: HeaderTags<'a>,
 }
-
-impl<'a> Segment for MetaSegment<'a> {}
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct SearchIndex {

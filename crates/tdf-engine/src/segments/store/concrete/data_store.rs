@@ -1,7 +1,6 @@
+use crate::segments::store::store::{PrimativeType, StoreItemCollection, UniqueType};
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
-
-use crate::segments::store::{PrimativeType, StoreItemCollection, UniqueType};
 
 #[derive(Debug, Serialize, Deserialize, Constructor, Default)]
 #[serde(bound(deserialize = "'de: 'a"))]

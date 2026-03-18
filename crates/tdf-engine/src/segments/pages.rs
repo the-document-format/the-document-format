@@ -1,12 +1,9 @@
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
 
-use crate::segments::{
-    Segment,
-    store::{
-        StoreItemRef,
-        page_store::{PageItemPrimative, PageItemUnique},
-    },
+use crate::segments::store::{
+    concrete::page_store::{PageItemPrimative, PageItemUnique},
+    store::StoreItemRef,
 };
 
 #[derive(Serialize, Deserialize, Debug, Constructor)]
@@ -14,8 +11,6 @@ use crate::segments::{
 pub struct PagesSegment<'a> {
     item: StoreItemRef<'a, PageItemPrimative, PageItemUnique>,
 }
-
-impl<'a> Segment for PagesSegment<'a> {}
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(bound(deserialize = "'de: 'a"))]

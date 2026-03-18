@@ -1,22 +1,21 @@
+use crate::segments::store::store::{PrimativeType, Store, UniqueType};
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
-
-use crate::segments::store::{PrimativeType, StoreItemCollection, UniqueType};
 
 #[derive(Debug, Serialize, Deserialize, Constructor, Default)]
 #[serde(bound(deserialize = "'de: 'a"))]
 pub struct PagesStore<'a> {
-    pages: StoreItemCollection<'a, PageItemPrimative, PageItemUnique>,
+    pages: Store<'a, PageItemPrimative, PageItemUnique>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Constructor, Hash, PartialEq, Eq)]
+#[derive(Debug, Serialize, Deserialize, Constructor, Hash, PartialEq, Eq, Clone)]
 pub struct PageItemUnique {
     pub position: Position,
 }
 
 impl<'a> UniqueType<'a> for PageItemUnique {}
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 pub enum PageItemPrimative {
     Image(ImageItem),
     Vector(VectorItem),
@@ -25,27 +24,27 @@ pub enum PageItemPrimative {
 
 impl<'a> PrimativeType<'a> for PageItemPrimative {}
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct ImageItem {
     width: u32,
     height: u32,
     data: Vec<u8>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct VectorItem {
     tags: VectorTags,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct VectorTags {}
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct TextItem {
     tags: TextTags,
 }
 
-#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct TextTags {}
 
 #[derive(Serialize, Deserialize, Debug, Constructor)]
@@ -55,7 +54,7 @@ pub struct PageData {
 }
 
 /// The position of an item on a page.
-#[derive(Serialize, Deserialize, Constructor, Debug, Hash, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Constructor, Debug, Hash, PartialEq, Eq, Clone)]
 pub struct Position(u64, u64);
 
 impl Position {
