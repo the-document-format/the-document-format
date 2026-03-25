@@ -4,7 +4,13 @@ TDF is a document format designed for efficient, composable document storage and
 
 ## Structure
 
-- [Reader](docs/READER.md) — The high-level interface for reading TDF documents, delegating to stores for data retrieval.
-- [Stores](docs/STORE.md) — Thin wrappers over backends that manage typed primitives: item, data, and signature stores.
-- [Frontends](docs/FRONTEND.md) — Store implementations that enforce additional invariants like append-only ordering or deduplication.
-- [Backends](docs/BACKEND.md) — Low-level data structures for grouped, ordered, key-value storage (e.g. VecBackend, IPFSBackend).
+- [Reader](docs/READER.md) -- The high-level interface for reading TDF documents, delegating to stores for data retrieval.
+- [Stores](docs/STORE.md) -- Thin wrappers over backends that manage typed primitives: item, data, and signature stores.
+- [Frontends](docs/FRONTEND.md) -- Store implementations that enforce additional invariants like append-only ordering or deduplication.
+- [Backends](docs/BACKEND.md) -- Low-level data structures for grouped, ordered, key-value storage (e.g. VecBackend, IPFSBackend).
+
+# General flow example
+
+Let's say you're reading a TDF, this is the order of events:
+
+1. You start by creating a TDF Reader using a helper method

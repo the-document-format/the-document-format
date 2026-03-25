@@ -27,16 +27,33 @@ There are three stores in the TDF specification,
 - The data store
 - The signature store
 
+Tags are optional data that live inside EVERY primitive. Each store has its own kind tag.
+
+Container is a reference to an item in the data store. it is a simple BackendPointer<DataPrimitive, DataUnique>.
+
 ## The item store
 
 Stores all items that are visible on pages.
+
+The ItemUnique has the following fields:
+
+- Tags -- see below. This is a collection of optional stuff that might apply to a specific Item or item that lives lower within the item.
+- Location
+
+The ItemStorePrimitive has the following tags available:
+
+- Font
+- Size
+- Stroke width
+- Stroke color
+- Fill color
+- Opacity
+- Text align
 
 Primitives include:
 
 - Text box:
   - Text data, which is the text itself
-  - Font container which points to the text's font
-  - Font size and styling information like color
 - Image:
   - A container to the data store
   - Size data
@@ -79,25 +96,25 @@ We also define various utilities that you can use on `Store`s that are automatic
 ```rust
 trait BackendPointerType = Ord;
 
-pub enum StoreItemCell<
+pub enum BackendItemCell<
     PrimitiveType,
     UniqueType,
     BackendPointer<PrimitiveType, UniqueType>: BackendPointerType,
     BackendPointerGroup<PrimitiveType, UniqueType>: BackendPointerType,
 > {
-    StoreItemRef(
-        StoreItemRef<
+    BackendItemRef(
+        BackendItemRef<
             PrimitiveType,
             UniqueType,
             BackendPointer<PrimitiveType, UniqueType>,
             BackendPointerGroup<PrimitiveType, UniqueType>,
         >,
     ),
-    StorePrimitive(PrimitiveType),
+    BackendPrimitive(PrimitiveType),
 }
 
-// The actual pointers themselves are containers that are generic and specific to the `Backend` (and we have to propagate these generics through the `Store`). More on this in our section on `Backend`s.
-pub enum StoreItemRef<
+// The actual pointers themselves are containers that are generic and specific to the `Backend` (and we have to propagate these generics through the `Backend`). More on this in our section on `Backend`s.
+pub enum BackendItemRef<
     PrimitiveType,
     UniqueType,
     BackendPointer<PrimitiveType, UniqueType>: BackendPointerType,
@@ -107,5 +124,3 @@ pub enum StoreItemRef<
     PointerGroup(BackendPointerGroup<PrimitiveType, UniqueType>),
 }
 ```
-
-# Store Ext

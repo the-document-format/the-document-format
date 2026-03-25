@@ -7,3 +7,5 @@ The reader has the following operations:
 - Get a lazy iterator of all items on some page given the page number. This function returns `ItemPrimitive` instances -- items that are allowed to exist on a page, like vectors or image containers.
 - Dereference a container. You provide the container primitive, which is a kind of `ItemPrimitive`, and in response you get a `DataStorePrimitive` which is automatically recursed and directly returned.
 - Various getters for the headers that we already read.
+
+A reader under the hood uses a backend of some concrete type that implements backend. Backends are a raw data storage mechanism. We will define many different helper constructors for creating backends, read the [backend](./BACKEND.md) section for more information on backends.

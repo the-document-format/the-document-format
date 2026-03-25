@@ -8,6 +8,9 @@ A `VecBackend` defines its pointer as a usize index, and a pointer group as a us
 
 A more complicated example is the `IPFSBackend`. This backend defines its pointer as a CID, and its pointer group is a vec of CIDs. The `IPFSBackend` stores all of its data in IPFS, and the pointer group is used to reference a group of data from IPFS. In this case we do get our performance gain from using a group by virtue of the fact that we can fetch all of the data in a group with a single IPFS request.
 
-# Example Flow:
+Some of the various backends we hope to define include:
 
-Let's say you are opening up a TDF file on your computer, and you want
+- A IPFS backend
+- A bytearray backend
+- A vector backend
+- A json backend
