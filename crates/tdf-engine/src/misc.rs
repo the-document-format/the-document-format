@@ -1,28 +1,18 @@
-use derive_more::Constructor;
 use serde::{Deserialize, Serialize};
 
-/// A Unix timestamp.
-#[derive(Serialize, Deserialize, Constructor, Debug)]
-pub struct Instant(u64);
+/// Unix timestamp in milliseconds.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct Instant(pub u64);
 
-impl Instant {
-    pub fn from_instant(instant: std::time::Instant) -> Self {
-        Instant(instant.elapsed().as_secs())
-    }
+/// A reference to a page by number.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PageRef(pub u32);
 
-    pub fn as_instant(&self) -> std::time::Instant {
-        std::time::Instant::now()
-    }
-}
+/// A reference to a specific item on a page.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PageAnchor(pub usize);
 
-/// A reference to a page
-///
-/// TODO
-#[derive(Serialize, Deserialize, Constructor, Debug)]
-pub struct PageRef();
-
-/// A reference to a spot on a page
-///
-/// TODO
-#[derive(Serialize, Deserialize, Constructor, Debug)]
-pub struct PageAnchor();
+/// A rolling hash value used for store integrity verification.
+/// Computed by `StoreExt::checksum()` and stored in the header.
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct Hash(pub u64);

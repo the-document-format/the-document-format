@@ -1,25 +1,30 @@
-use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
+use crate::primitives::page::PageStorePointer;
 
-use crate::segments::store::{
-    concrete::page_store::{PageItemPrimative, PageItemUnique},
-    store::StoreItemRef,
-};
+#[derive(Serialize, Deserialize, Debug, Default)]
+pub struct PagesSegment {
+    pub pages: Vec<PageEntry>,
+}
 
-#[derive(Serialize, Deserialize, Debug, Constructor)]
-#[serde(bound(deserialize = "'de: 'a"))]
-pub struct PagesSegment<'a> {
-    item: StoreItemRef<'a, PageItemPrimative, PageItemUnique>,
+impl PagesSegment {
+    pub fn new() -> Self { Self::default() }
+
+    pub fn get_page(&self, page_number: usize) -> Option<&PageEntry> {
+        self.pages.get(page_number)
+    }
+
+    pub fn page_count(&self) -> usize { self.pages.len() }
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(bound(deserialize = "'de: 'a"))]
-pub struct Page<'a> {
-    tags: PageTags,
-    items: Vec<StoreItemRef<'a, PageItemPrimative, PageItemUnique>>,
+pub struct PageEntry {
+    pub tags: PageTags,
+    pub page_ref: PageStorePointer,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Default)]
 pub struct PageTags {
-    physical_page_number: Option<u32>,
+    pub physical_page_number: Option<u32>,
+    pub width: Option<u32>,
+    pub height: Option<u32>,
 }

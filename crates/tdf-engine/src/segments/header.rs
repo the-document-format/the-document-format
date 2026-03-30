@@ -1,47 +1,27 @@
-//! The prefix segments is whole-document high level metadata.
-//!
-//! Metadata about the actual semantic information contained in the document
-//! should go in the header, not in the prefix.
-
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
+use crate::misc::Hash;
 
-/// Magic bits to identify a TDF file. "Trev" stands for "Trevor."
-///
-/// These are ASCII so they appear in hexdump.
 pub const MAGIC_BYTES: [u8; 6] = [b'T', b'R', b'E', b'V', b'D', b'F'];
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct HeaderSegment {
-    /// Magic bits to identify a TDF file.
-    magic_bytes: [u8; 6],
-    /// The version of TDF that this file is for.
-    version: u8,
-    /// The length of the entire file, including the prelude.
-    file_len: u64,
-    /// The compression mode to use for the rest of file.
-    compression: Compression,
-    /// All offsets corresponding to other segments in the document.
-    segment_offsets: SegmentOffsets,
-    checksum: Checksum,
+    pub magic_bytes: [u8; 6],
+    pub version: u8,
+    pub file_len: u64,
+    pub compression: Compression,
+    pub segment_offsets: SegmentOffsets,
+    pub checksum: Hash,
 }
 
-/// A checksum of the header segment, to verify that it was read correctly.
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Checksum {
-    // TODO
-}
-
-/// Offsets corresponding to all other segments in the document.
 #[derive(Serialize, Deserialize, Debug, Constructor)]
 pub struct SegmentOffsets {
-    /// The start byte for the region where pages are stored.
-    pages_offset: u64,
-    /// The start byte for the region where the store is stored.
-    store_offset: u64,
+    pub meta_offset: u64,
+    pub pages_offset: u64,
+    pub store_offset: u64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub enum Compression {
     None,
 }
@@ -54,7 +34,7 @@ impl HeaderSegment {
             file_len,
             compression: Compression::None,
             segment_offsets,
-            checksum: Checksum {},
+            checksum: Hash::default(),
         }
     }
 }

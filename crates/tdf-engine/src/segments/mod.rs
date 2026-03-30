@@ -1,11 +1,4 @@
-//! A segment is one component of a TDF document.
-//!
-//! You can serialize or deserialize an entire segment independently of the other segments.
-
-pub mod footer;
+//! Per SEGMENTS.md, TDF has exactly three segments: header, meta, and pages.
 pub mod header;
 pub mod meta;
 pub mod pages;
-pub mod store;
-pub mod suffix;
-pub mod backend;

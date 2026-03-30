@@ -1,8 +1,10 @@
-pub struct TDFWriter<T>
-where
-    T: std::io::Write + std::io::Seek,
-{
-    writer: T,
+use std::io::{Seek, Write};
+
+pub struct TDFWriter<W: Write + Seek> {
+    writer: W,
 }
 
-impl<T> TDFWriter<T> where T: std::io::Write + std::io::Seek {}
+impl<W: Write + Seek> TDFWriter<W> {
+    pub fn new(writer: W) -> Self { Self { writer } }
+    pub fn write(self) -> std::io::Result<()> { todo!() }
+}
