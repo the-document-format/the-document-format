@@ -5,6 +5,10 @@ pub struct TDFWriter<W: Write + Seek> {
 }
 
 impl<W: Write + Seek> TDFWriter<W> {
-    pub fn new(writer: W) -> Self { Self { writer } }
-    pub fn write(self) -> std::io::Result<()> { todo!() }
+    pub fn new(writer: W) -> Self {
+        Self { writer }
+    }
+    pub fn write(self) -> std::io::Result<()> {
+        todo!()
+    }
 }

@@ -6,5 +6,5 @@
 //! the big master list, using an index as a reference.
 
 pub mod concrete;
-pub mod store;
 pub mod impls;
+pub mod store;

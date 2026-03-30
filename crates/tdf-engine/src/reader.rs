@@ -50,14 +50,29 @@ impl VecReader {
         meta: MetaSegment,
         pages: PagesSegment,
     ) -> Self {
-        Self { backend, page_store, item_store, data_store, sig_store, header, meta, pages }
+        Self {
+            backend,
+            page_store,
+            item_store,
+            data_store,
+            sig_store,
+            header,
+            meta,
+            pages,
+        }
     }
 }
 
 impl TDFReader<VecBackend> for VecReader {
-    fn header(&self) -> &HeaderSegment { &self.header }
-    fn meta(&self) -> &MetaSegment { &self.meta }
-    fn pages(&self) -> &PagesSegment { &self.pages }
+    fn header(&self) -> &HeaderSegment {
+        &self.header
+    }
+    fn meta(&self) -> &MetaSegment {
+        &self.meta
+    }
+    fn pages(&self) -> &PagesSegment {
+        &self.pages
+    }
 
     fn iter_page_items(
         &self,
@@ -77,7 +92,11 @@ impl TDFReader<VecBackend> for VecReader {
             StoreItemCell::StorePrimitive(p) => p.clone(),
             _ => return Box::new(std::iter::empty()),
         };
-        Box::new(self.item_store.iter_rec(&item_pointer, &self.backend).into_iter())
+        Box::new(
+            self.item_store
+                .iter_rec(&item_pointer, &self.backend)
+                .into_iter(),
+        )
     }
 
     fn deref_handle(&self, handle: &DataStorePointer) -> Option<DataPrimitive> {

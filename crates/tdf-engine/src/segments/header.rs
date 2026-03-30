@@ -1,6 +1,6 @@
+use crate::misc::Hash;
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};
-use crate::misc::Hash;
 
 pub const MAGIC_BYTES: [u8; 6] = [b'T', b'R', b'E', b'V', b'D', b'F'];
 

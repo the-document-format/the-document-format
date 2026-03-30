@@ -22,21 +22,36 @@ mod tests {
         let reader = DummyTDFBuilder::new()
             .add_page(vec![
                 (
-                    ItemPrimitive::Shape(Shape { kind: ShapeKind::Rectangle }),
-                    ItemUnique { position: Position { x: 10, y: 20 }, ..Default::default() },
+                    ItemPrimitive::Shape(Shape {
+                        kind: ShapeKind::Rectangle,
+                    }),
+                    ItemUnique {
+                        position: Position { x: 10, y: 20 },
+                        ..Default::default()
+                    },
                 ),
                 (
-                    ItemPrimitive::TextBox(TextBox { content: "Hello".into(), font: None }),
-                    ItemUnique { position: Position { x: 30, y: 40 }, ..Default::default() },
+                    ItemPrimitive::TextBox(TextBox {
+                        content: "Hello".into(),
+                        font: None,
+                    }),
+                    ItemUnique {
+                        position: Position { x: 30, y: 40 },
+                        ..Default::default()
+                    },
                 ),
             ])
-            .add_page(vec![
-                (
-                    ItemPrimitive::TextBox(TextBox { content: "Page 2".into(), font: None }),
-                    ItemUnique { position: Position { x: 0, y: 0 }, ..Default::default() },
-                ),
-            ])
-            .build();
+            .add_page(vec![(
+                ItemPrimitive::TextBox(TextBox {
+                    content: "Page 2".into(),
+                    font: None,
+                }),
+                ItemUnique {
+                    position: Position { x: 0, y: 0 },
+                    ..Default::default()
+                },
+            )])
+            .build(); // writer -> reader
 
         let items: Vec<_> = reader.iter_page_items(0).collect();
         assert_eq!(items.len(), 2);
@@ -47,7 +62,10 @@ mod tests {
         for page in 0..2 {
             println!("--- page {page} ---");
             for (primitive, unique) in reader.iter_page_items(page) {
-                println!("  pos=({}, {})  item={primitive:?}", unique.position.x, unique.position.y);
+                println!(
+                    "  pos=({}, {})  item={primitive:?}",
+                    unique.position.x, unique.position.y
+                );
             }
         }
     }
@@ -57,9 +75,18 @@ mod tests {
         use crate::backend::UniqueReduce;
         use crate::primitives::item::{ItemUnique, Position};
 
-        let a = ItemUnique { position: Position { x: 0, y: 0 }, ..Default::default() };
-        let b = ItemUnique { position: Position { x: 2, y: 2 }, ..Default::default() };
-        let c = ItemUnique { position: Position { x: 3, y: 3 }, ..Default::default() };
+        let a = ItemUnique {
+            position: Position { x: 0, y: 0 },
+            ..Default::default()
+        };
+        let b = ItemUnique {
+            position: Position { x: 2, y: 2 },
+            ..Default::default()
+        };
+        let c = ItemUnique {
+            position: Position { x: 3, y: 3 },
+            ..Default::default()
+        };
         let result = a.reduce(b).reduce(c);
         assert_eq!(result.position, Position { x: 5, y: 5 });
     }

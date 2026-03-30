@@ -1,5 +1,5 @@
+use crate::misc::{Instant, PageAnchor, PageRef};
 use serde::{Deserialize, Serialize};
-use crate::misc::{Instant, PageRef, PageAnchor};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct MetaSegment {

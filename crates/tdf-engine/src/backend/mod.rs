@@ -62,11 +62,20 @@ impl<T: PartialEq + Eq, U: Ord> Ord for BackendPointer<T, U> {
 
 impl<T, U: Default> BackendPointer<T, U> {
     pub fn new(index: usize) -> Self {
-        BackendPointer::Pointer { index, unique: U::default(), _phantom: PhantomData }
+        BackendPointer::Pointer {
+            index,
+            unique: U::default(),
+            _phantom: PhantomData,
+        }
     }
 
     pub fn range(start: usize, len: usize) -> Self {
-        BackendPointer::PointerRange { start, len, unique: U::default(), _phantom: PhantomData }
+        BackendPointer::PointerRange {
+            start,
+            len,
+            unique: U::default(),
+            _phantom: PhantomData,
+        }
     }
 }
 
@@ -86,7 +95,10 @@ pub struct BackendView<P, B: Backend> {
 
 impl<P, B: Backend> BackendView<P, B> {
     pub fn new(offset: usize) -> Self {
-        BackendView { offset, _phantom: PhantomData }
+        BackendView {
+            offset,
+            _phantom: PhantomData,
+        }
     }
 }
 
@@ -99,27 +111,43 @@ pub trait BackendAccess<P, U> {
 
 /// Physical storage for all four TDF stores.
 pub trait Backend {
-    fn push_page(&mut self, item: StoreItemCell<ItemPointer, ()>)
-        -> BackendPointer<ItemPointer, ()>;
-    fn get_page(&self, pointer: &BackendPointer<ItemPointer, ()>)
-        -> Option<&StoreItemCell<ItemPointer, ()>>;
+    fn push_page(
+        &mut self,
+        item: StoreItemCell<ItemPointer, ()>,
+    ) -> BackendPointer<ItemPointer, ()>;
+    fn get_page(
+        &self,
+        pointer: &BackendPointer<ItemPointer, ()>,
+    ) -> Option<&StoreItemCell<ItemPointer, ()>>;
     fn page_store_size(&self) -> usize;
 
-    fn push_item(&mut self, item: StoreItemCell<ItemPrimitive, ItemUnique>)
-        -> BackendPointer<ItemPrimitive, ItemUnique>;
-    fn get_item(&self, pointer: &BackendPointer<ItemPrimitive, ItemUnique>)
-        -> Option<&StoreItemCell<ItemPrimitive, ItemUnique>>;
+    fn push_item(
+        &mut self,
+        item: StoreItemCell<ItemPrimitive, ItemUnique>,
+    ) -> BackendPointer<ItemPrimitive, ItemUnique>;
+    fn get_item(
+        &self,
+        pointer: &BackendPointer<ItemPrimitive, ItemUnique>,
+    ) -> Option<&StoreItemCell<ItemPrimitive, ItemUnique>>;
     fn item_store_size(&self) -> usize;
 
-    fn push_data(&mut self, item: StoreItemCell<DataPrimitive, ()>)
-        -> BackendPointer<DataPrimitive, ()>;
-    fn get_data(&self, pointer: &BackendPointer<DataPrimitive, ()>)
-        -> Option<&StoreItemCell<DataPrimitive, ()>>;
+    fn push_data(
+        &mut self,
+        item: StoreItemCell<DataPrimitive, ()>,
+    ) -> BackendPointer<DataPrimitive, ()>;
+    fn get_data(
+        &self,
+        pointer: &BackendPointer<DataPrimitive, ()>,
+    ) -> Option<&StoreItemCell<DataPrimitive, ()>>;
     fn data_store_size(&self) -> usize;
 
-    fn push_sig(&mut self, item: StoreItemCell<SignaturePrimitive, SignatureUnique>)
-        -> BackendPointer<SignaturePrimitive, SignatureUnique>;
-    fn get_sig(&self, pointer: &BackendPointer<SignaturePrimitive, SignatureUnique>)
-        -> Option<&StoreItemCell<SignaturePrimitive, SignatureUnique>>;
+    fn push_sig(
+        &mut self,
+        item: StoreItemCell<SignaturePrimitive, SignatureUnique>,
+    ) -> BackendPointer<SignaturePrimitive, SignatureUnique>;
+    fn get_sig(
+        &self,
+        pointer: &BackendPointer<SignaturePrimitive, SignatureUnique>,
+    ) -> Option<&StoreItemCell<SignaturePrimitive, SignatureUnique>>;
     fn sig_store_size(&self) -> usize;
 }

@@ -2,8 +2,12 @@
 
 use crate::backend::{BackendPointer, VecBackend};
 use crate::primitives::item::{ItemPrimitive, ItemUnique};
-use crate::reader::{VecReader, PageStore, ItemStore, DataStore, SigStore};
-use crate::segments::{header::{HeaderSegment, SegmentOffsets}, meta::MetaSegment, pages::{PageEntry, PageTags, PagesSegment}};
+use crate::reader::{DataStore, ItemStore, PageStore, SigStore, VecReader};
+use crate::segments::{
+    header::{HeaderSegment, SegmentOffsets},
+    meta::MetaSegment,
+    pages::{PageEntry, PageTags, PagesSegment},
+};
 use crate::store::traits::Store;
 
 pub trait TDFBuilder: Sized {
@@ -27,7 +31,9 @@ pub struct DummyTDFBuilder {
 }
 
 impl DummyTDFBuilder {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 }
 
 impl TDFBuilder for DummyTDFBuilder {
@@ -48,15 +54,28 @@ impl TDFBuilder for DummyTDFBuilder {
             let mut item_ptrs = vec![];
             for (primitive, unique) in page_items {
                 let mut ptr = self.item_store.push(primitive, &mut self.backend);
-                if let BackendPointer::Pointer { unique: u, .. } = &mut ptr { *u = unique; }
+                if let BackendPointer::Pointer { unique: u, .. } = &mut ptr {
+                    *u = unique;
+                }
                 item_ptrs.push(ptr);
             }
             let item_pointer = self.item_store.group(item_ptrs, &mut self.backend);
             let page_ptr = self.page_store.push(item_pointer, &mut self.backend);
-            self.pages.pages.push(PageEntry { page_ref: page_ptr, tags: PageTags::default() });
+            self.pages.pages.push(PageEntry {
+                page_ref: page_ptr,
+                tags: PageTags::default(),
+            });
         }
         let header = HeaderSegment::new(0, SegmentOffsets::new(0, 0, 0));
-        VecReader::new(self.backend, self.page_store, self.item_store,
-                       self.data_store, self.sig_store, header, self.meta, self.pages)
+        VecReader::new(
+            self.backend,
+            self.page_store,
+            self.item_store,
+            self.data_store,
+            self.sig_store,
+            header,
+            self.meta,
+            self.pages,
+        )
     }
 }

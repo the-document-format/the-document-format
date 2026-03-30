@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::primitives::page::PageStorePointer;
+use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
 pub struct PagesSegment {
@@ -7,13 +7,17 @@ pub struct PagesSegment {
 }
 
 impl PagesSegment {
-    pub fn new() -> Self { Self::default() }
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn get_page(&self, page_number: usize) -> Option<&PageEntry> {
         self.pages.get(page_number)
     }
 
-    pub fn page_count(&self) -> usize { self.pages.len() }
+    pub fn page_count(&self) -> usize {
+        self.pages.len()
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug)]

@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::primitives::data::DataStorePointer;
+use serde::{Deserialize, Serialize};
 
 /// Everything that can appear on a page.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
