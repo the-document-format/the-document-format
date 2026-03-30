@@ -1,13 +1,43 @@
-# `Frontend`s
+# Frontends
 
-A frontend is a container to store raw data that is just one level above the backend. It defines contracts for how the data actually gets stored.
+A frontend is an implementation of the [Store](./STORE.md) trait that enforces additional invariants about how data is organized. The store trait defines *what* operations are available; the frontend defines *how* items are laid out and what guarantees hold. The actual byte layout is not guaranteed by the backend but the ordering and grouping is.
 
-In reality, a store is just a trait. A `Frontend` is a implementation of a `Store`, but still specific to some type of data (also usually is some `enum`) for type `T`. The purpose of a `Frontend` is to maintain some additional invariants about how the data is stored. We plan on defining the following types of `Frontend`s:
+Every store in TDF uses one of two frontends:
 
-## `AppendOnlyStore`
+| Frontend | Used by | Key guarantee |
+|----------|---------|---------------|
+| AppendOnlyStore | Page store, Signature store | Insertion order is preserved and meaningful |
+| OptimizedStore | Item store, Data store | Identical primitives are interned; items are grouped |
 
-The `AppendOnlyStore` is a frontend that makes sure that the data being stored is sequential (pointers are ordered). That way when you sign the document, there is a guarantee that the items you are signing all come before the last item.
+## AppendOnlyStore
 
-## `OptimizedStore`
+```
+AppendOnlyStore<Primitive, Unique>
+```
 
-The `OptimizedStore` is a frontend that automatically groups items and interns identical items. It is used for the `DataStore` and `ItemStore` where we are storing potentially duplicate data. It takes advantage of an abstract "pointer + group" layout (more on this in [Backends](BACKEND.md)).
+An append-only frontend guarantees that pointers are **sequential and ordered**. You can only add items to the end — never insert, reorder, or delete. This means:
+
+- Everything before pointer N was written before N.
+- The ordering of pointers reflects the temporal ordering of writes.
+
+This property is critical for two use cases:
+
+**Signature store**: Signatures sign over all prior content in the document. The append-only guarantee means that when you verify signature N, you know that all content referenced by pointers < N existed at the time of signing. Without this, a signature could be invalidated by reordering.
+
+**Page store**: Pages are stored as `AppendOnlyStore<ItemPointer, ()>`. The append-only ordering ensures pages are numbered sequentially and can be looked up by index. The unique type is `()` because pages carry no unique data — they are purely structural pointers into the item store.
+
+See [Primitives](./PRIMITIVES.md) for the concrete types used by each store.
+
+## OptimizedStore
+
+```
+OptimizedStore<Primitive, Unique>
+```
+
+An optimized frontend groups items together and **interns identical primitives** — if two items have the same primitive data, they share a single copy in storage. This is the frontend for stores where deduplication matters:
+
+**Item store**: Multiple pages may reference the same vector graphic or text style. The optimized store ensures these are stored once and referenced by pointer, taking advantage of the [backend's](./BACKEND.md) pointer and pointer-group layout.
+
+**Data store**: Font data and image data are often shared across many items. Interning prevents storing the same 500KB font file for every text box that uses it.
+
+The optimized store makes **no ordering guarantees**. Items may be rearranged internally to improve grouping and deduplication. If you need ordering, use `AppendOnlyStore`.

@@ -1,126 +1,105 @@
-# The `Store`s
+# Stores
 
-A store is responsible for one kind of data in a TDF document. It sits between the reader and the backend, so the reader does not have to worry about how or where data is actually stored -- it just asks the store for what it needs and gets back the right type.
+A store sits between the [reader](./READER.md) and the [backend](./BACKEND.md). It manages typed items — the reader asks the store for what it needs and gets back correctly typed results without knowing anything about how or where data is physically stored.
 
-# Operations
+A store is a **trait**, generic on two type parameters:
 
-Every store has the following operations:
+```
+Store<Primitive, Unique>
+```
 
-- Get item, which returns a store cell in a store given a pointer
-- Insert an item into the store, which returns a handle, which is a pointer pointer
-- Size, which is the number of items in the store
-- Grouping many items in the store together into a single store item group cell
+- **Primitive** — the internable data type (e.g., `ItemPrimitive`, `DataPrimitive`)
+- **Unique** — the non-internable data carried by every pointer (e.g., `ItemUnique`, `()`)
 
-We also define store extension, which is a collection of utilities generic to all stores:
+See [Primitives](./PRIMITIVES.md) for the concrete types used by each of the four stores.
 
-- Deference a store cell -- this calls get on the store with the inside of the cell until we have a store primitive
-- It offers a function to get a store range iterator that iterates over a range of items in the store
-- Checksum the entire store. Checksumming under the hood delegates to the backend to compute a rolling checksum of every individual store item
+## How stores access the backend — BackendView
 
-Then, different stores will have their own unique capabilities...
+A store does **not** hold a reference to the full backend. Instead, it holds a `BackendView`:
 
-# The specific stores
+```
+BackendView<Primitive, B: Backend>
+```
 
-There are three stores in the TDF specification,
+A `BackendView` is a lightweight struct constructed with the **offset** for that store's region within the backend. It provides type-safe access scoped to just that store's data:
 
-- The item store
-- The data store
-- The signature store
+- `view.get(&backend)` — reads from the backend at the correct offset
+- `view.set(&mut backend, ...)` — writes to the backend at the correct offset
 
-Tags are optional data that live inside EVERY primitive. Each store has its own kind tag.
+The view is generic on both the store's primitive type and the concrete backend type. Each store gets its own view, and the view is what prevents one store from accidentally reading another store's data.
 
-Container is a reference to an item in the data store. it is a simple BackendPointer<DataPrimitive, DataUnique>.
+See [BackendView](./BACKEND.md#backendview) for more on how views are constructed and how they communicate with the backend.
 
-## The item store
+## Store trait operations
 
-Stores all items that are visible on pages.
+Every store implementation must provide these operations:
 
-The ItemUnique has the following fields:
+### `push(item) → Handle`
 
-- Tags -- see below. This is a collection of optional stuff that might apply to a specific Item or item that lives lower within the item.
-- Location
+Insert an item into the store. Returns a handle (a pointer to the inserted item) that can be used to retrieve it later.
 
-The ItemStorePrimitive has the following tags available:
+### `get(pointer) → StoreItemCell`
 
-- Font
-- Size
-- Stroke width
-- Stroke color
-- Fill color
-- Opacity
-- Text align
+Retrieve a single item from the store given a pointer. Returns a `StoreItemCell` — see [below](#storeitemcell).
 
-Primitives include:
+### `size() → usize`
 
-- Text box:
-  - Text data, which is the text itself
-- Image:
-  - A container to the data store
-  - Size data
-- Vector:
-  - List of Bezier points
-  - Line width
-  - Fill and stroke color
-- Shape:
-  - A special enum of common shapes like circles, squares, TDF logo
-  - Most of the other parameters are similar to vector
-  
-The capabilities of an item store include:
+The number of items currently in the store.
 
-- Grouping together multiple items into a "group" -- a concept defined by the backend.
+### `group(items) → StoreItemGroupCell`
 
-## The data store
+Combine multiple items in the store into a single group. Groups are a backend-level concept that allows related items to be stored and fetched together efficiently.
 
-Stores blobular data. This is large data that we do not want to automatically load as we lazy-iterate the items on some page. Primitives include:
+### `iter() → Iterator<StoreItemCell>`
 
-- Font data:
-  - The font data itself
-- Image data
-  - The raw image data
+Iterate over **all** items in the store. This is used by `StoreExt::checksum()` to compute a rolling hash over the entire store.
 
-## The signature store
+## StoreExt
 
-An append-only store. This is where signature data lives. Signatures sign previous signatures which is why it must be append only.
+`StoreExt` is auto-implemented for all types that implement `Store`. It provides higher-level utilities that are generic across all stores.
 
-The only primitive for the signature store is the "Signature" which contains:
+### `iter_rec(pointer) → Iterator<(Primitive, reduced Unique)>`
 
-- Cryptographic public key and signing of the entire document including our own public key in the hash.
-- The time, which we will find a way to properly verify
+Recursively dereference a single pointer. Follows the pointer through the store, resolving any intermediate backend pointers, and yields `(Primitive, reduced Unique)` pairs for every leaf primitive reachable from the pointer.
 
-# Structure
+Delegates to the backend's recursive iterator, which handles [unique reduction](./BACKEND.md#unique-reduction) — accumulating unique data at each pointer hop.
 
-A `Store` is a thin wrapper on top of a backend that manages interaction with a backend scoped to some set of identically typed items of potentially variable sizes, referred to as "primitives," generic on that type of item, `T`, which we bound with some type `PrimitiveType`. Usually this is an enum when you are interacting with the `Store`, but on disc something that is automatically compacted.
+A single pointer is just the degenerate case of a range, so this uses the same backend machinery as `iter_range_rec`.
 
-We also define various utilities that you can use on `Store`s that are automatically implemented for stores or can easily be constructed. For example, for recursive dereferencing of items in stores, you can use `StoreExt`, which includes utilities for operations like that. This is defined generically for all types of stores.
+### `iter_range_rec(pointer_range) → Iterator<(Primitive, reduced Unique)>`
+
+Same as `iter_rec` but for a range of pointers. Also delegates to the backend's recursive iterator. Both methods return iterators and are named consistently since single dereference is the one-item case of a range.
+
+### `checksum() → Hash`
+
+Computes a rolling hash over all items in the store by iterating via `iter()`. The [header](./SEGMENTS.md#header) stores the checksum for integrity verification.
+
+## StoreItemCell
+
+When you read from a store, you get back a `StoreItemCell` — an enum that is either:
+
+- **`StorePrimitive(T)`** — a leaf item: the actual primitive data
+- **`BackendPointer`** — a pointer or pointer-group into the **same** store, indicating that further dereferencing is needed
+
+```
+StoreItemCell<Primitive, Unique>
+├── StorePrimitive(Primitive)
+└── BackendPointer(BackendPointer<Primitive, Unique>)
+```
+
+The recursive iteration methods in `StoreExt` handle `BackendPointer` resolution automatically — callers get back only resolved primitives with their reduced uniques.
+
+## Pseudocode
 
 ```rust
-trait BackendPointerType = Ord;
+trait BackendPointerType = Ord + Hash;
 
-pub enum BackendItemCell<
-    PrimitiveType,
-    UniqueType,
-    BackendPointer<PrimitiveType, UniqueType>: BackendPointerType,
-    BackendPointerGroup<PrimitiveType, UniqueType>: BackendPointerType,
+pub enum StoreItemCell<
+    Primitive,
+    Unique,
+    BackendPointer<Primitive, Unique>: BackendPointerType,
 > {
-    BackendItemRef(
-        BackendItemRef<
-            PrimitiveType,
-            UniqueType,
-            BackendPointer<PrimitiveType, UniqueType>,
-            BackendPointerGroup<PrimitiveType, UniqueType>,
-        >,
-    ),
-    BackendPrimitive(PrimitiveType),
-}
-
-// The actual pointers themselves are containers that are generic and specific to the `Backend` (and we have to propagate these generics through the `Backend`). More on this in our section on `Backend`s.
-pub enum BackendItemRef<
-    PrimitiveType,
-    UniqueType,
-    BackendPointer<PrimitiveType, UniqueType>: BackendPointerType,
-    BackendPointerGroup<PrimitiveType, UniqueType>: BackendPointerType,
-> {
-    Pointer(BackendPointer<PrimitiveType, UniqueType>),
-    PointerGroup(BackendPointerGroup<PrimitiveType, UniqueType>),
+    BackendPointer(BackendPointer<Primitive, Unique>),
+    StorePrimitive(Primitive),
 }
 ```
