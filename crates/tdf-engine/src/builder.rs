@@ -1,6 +1,6 @@
 //! TDFBuilder trait and DummyTDFBuilder concrete implementation.
 
-use crate::backend::{BackendPointer, VecBackend};
+use crate::backend::{BackendAccess, BackendPointer, VecBackend};
 use crate::primitives::item::{ItemPrimitive, ItemUnique};
 use crate::reader::{DataStore, ItemStore, PageStore, SigStore, VecReader};
 use crate::segments::{
@@ -54,12 +54,16 @@ impl TDFBuilder for DummyTDFBuilder {
             let mut item_ptrs = vec![];
             for (primitive, unique) in page_items {
                 let mut ptr = self.item_store.push(primitive, &mut self.backend);
-                if let BackendPointer::Pointer { unique: u, .. } = &mut ptr {
+                if let BackendPointer::Single { unique: u, .. } = &mut ptr {
                     *u = unique;
                 }
                 item_ptrs.push(ptr);
             }
-            let item_pointer = self.item_store.group(item_ptrs, &mut self.backend);
+            let item_pointer =
+                <VecBackend as BackendAccess<ItemPrimitive, ItemUnique>>::group_together(
+                    &mut self.backend,
+                    item_ptrs,
+                );
             let page_ptr = self.page_store.push(item_pointer, &mut self.backend);
             self.pages.pages.push(PageEntry {
                 page_ref: page_ptr,

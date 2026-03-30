@@ -1,3 +1,4 @@
+use crate::backend::VecRange;
 use serde::{Deserialize, Serialize};
 
 /// Large blobs loaded lazily via `TDFReader::deref_handle`.
@@ -18,6 +19,6 @@ pub struct ImageData {
 }
 
 /// A lazy cross-store reference from an item primitive into the data store.
-pub type DataStorePointer = crate::backend::BackendPointer<DataPrimitive, ()>;
+pub type DataStorePointer = crate::backend::BackendPointer<DataPrimitive, (), VecRange>;
 
 impl crate::store::traits::PrimitiveType for DataPrimitive {}
