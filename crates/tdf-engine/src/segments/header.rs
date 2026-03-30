@@ -23,6 +23,13 @@ pub struct HeaderSegment {
     compression: Compression,
     /// All offsets corresponding to other segments in the document.
     segment_offsets: SegmentOffsets,
+    checksum: Checksum,
+}
+
+/// A checksum of the header segment, to verify that it was read correctly.
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Checksum {
+    // TODO
 }
 
 /// Offsets corresponding to all other segments in the document.
@@ -47,6 +54,7 @@ impl HeaderSegment {
             file_len,
             compression: Compression::None,
             segment_offsets,
+            checksum: Checksum {},
         }
     }
 }

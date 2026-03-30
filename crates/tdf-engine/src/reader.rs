@@ -1,23 +1,12 @@
-use serde::{Deserialize, Serialize};
+use crate::segments::{header::HeaderSegment, meta::MetaSegment, pages::PagesSegment, store::concrete::page_store::{PageItemPrimative, PageItemUnique}};
 
-use crate::segments::header::HeaderSegment;
+pub trait TDFReader<'a> {
+    // Getters for the segments of the store
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TDFReader<T>
-where
-    T: std::io::Seek + std::io::Read,
-{
-    file: T,
-    state: TDFReaderState,
-}
+    fn header(&'a self) -> &'a HeaderSegment;
+    fn meta(&'a self) -> &'a MetaSegment;
+    fn pages(&'a self) -> &'a PagesSegment;
 
-#[derive(Debug, Deserialize, Serialize)]
-pub enum TDFReaderState {
-    BrandNew,
-    WithHeader(TDFReaderWithHeader),
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct TDFReaderWithHeader {
-    header: HeaderSegment,
+    // Helpers to interact with content
+    fn get_page_items(&'a self, page_id: usize) -> impl Iterator<Item = (PageItemPrimative, PageItemUnique)>;
 }
