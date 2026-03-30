@@ -3,6 +3,7 @@
 use crate::backend::{Backend, BackendPointer, StoreItemCell, UniqueReduce};
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
+use std::marker::PhantomData;
 
 pub trait PrimitiveType: Hash + Clone + Eq + PartialEq + Serialize + for<'de> Deserialize<'de> {}
 
@@ -28,7 +29,45 @@ pub trait StoreExt<P: PrimitiveType, U: UniqueType, B: Backend>: Store<P, U, B> 
 }
 
 impl<P: PrimitiveType, U: UniqueType, B: Backend, S: Store<P, U, B>> StoreExt<P, U, B> for S {
-    fn iter_rec(&self, pointer: &BackendPointer<P, U>, backend: &B) -> Vec<(P, U)> { todo!() }
+    fn iter_rec(&self, pointer: &BackendPointer<P, U>, backend: &B) -> Vec<(P, U)> {
+        match pointer {
+            BackendPointer::Pointer { unique: outer_unique, .. } => {
+                match self.get(pointer, backend) {
+                    Some(StoreItemCell::StorePrimitive(p)) => vec![(p.clone(), outer_unique.clone())],
+                    Some(StoreItemCell::BackendPointer(inner)) => {
+                        let reduced = match inner.clone() {
+                            BackendPointer::Pointer { index, unique: inner_u, _phantom } =>
+                                BackendPointer::Pointer {
+                                    index,
+                                    unique: outer_unique.clone().reduce(inner_u),
+                                    _phantom,
+                                },
+                            BackendPointer::PointerRange { start, len, unique: inner_u, _phantom } =>
+                                BackendPointer::PointerRange {
+                                    start, len,
+                                    unique: outer_unique.clone().reduce(inner_u),
+                                    _phantom,
+                                },
+                        };
+                        self.iter_rec(&reduced, backend)
+                    }
+                    None => vec![],
+                }
+            }
+            BackendPointer::PointerRange { start, len, unique, .. } => {
+                (*start..*start + *len)
+                    .flat_map(|i| {
+                        let ptr = BackendPointer::Pointer {
+                            index: i,
+                            unique: unique.clone(),
+                            _phantom: PhantomData,
+                        };
+                        self.iter_rec(&ptr, backend)
+                    })
+                    .collect()
+            }
+        }
+    }
     fn iter_range_rec(&self, pointer: &BackendPointer<P, U>, backend: &B) -> Vec<(P, U)> { todo!() }
     fn checksum(&self, backend: &B) -> crate::misc::Hash { todo!() }
 }

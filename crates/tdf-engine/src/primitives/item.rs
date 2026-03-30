@@ -90,5 +90,20 @@ pub enum TextAlignment {
 impl crate::store::traits::PrimitiveType for ItemPrimitive {}
 impl crate::store::traits::UniqueType for ItemUnique {}
 impl crate::backend::UniqueReduce for ItemUnique {
-    fn reduce(self, other: Self) -> Self { todo!() }
+    fn reduce(self, other: Self) -> Self {
+        Self {
+            position: Position {
+                x: self.position.x + other.position.x,
+                y: self.position.y + other.position.y,
+            },
+            tags: ItemTags {
+                font_size: other.tags.font_size.or(self.tags.font_size),
+                stroke_width: other.tags.stroke_width.or(self.tags.stroke_width),
+                stroke_color: other.tags.stroke_color.or(self.tags.stroke_color),
+                fill_color: other.tags.fill_color.or(self.tags.fill_color),
+                opacity: other.tags.opacity.or(self.tags.opacity),
+                text_alignment: other.tags.text_alignment.or(self.tags.text_alignment),
+            },
+        }
+    }
 }

@@ -63,7 +63,21 @@ impl TDFReader<VecBackend> for VecReader {
         &self,
         page_number: usize,
     ) -> Box<dyn Iterator<Item = (ItemPrimitive, ItemUnique)>> {
-        todo!()
+        use crate::backend::StoreItemCell;
+        use crate::store::traits::{Store, StoreExt};
+        let page_entry = match self.pages.get_page(page_number) {
+            Some(e) => e,
+            None => return Box::new(std::iter::empty()),
+        };
+        let cell = match self.page_store.get(&page_entry.page_ref, &self.backend) {
+            Some(c) => c,
+            None => return Box::new(std::iter::empty()),
+        };
+        let item_pointer = match cell {
+            StoreItemCell::StorePrimitive(p) => p.clone(),
+            _ => return Box::new(std::iter::empty()),
+        };
+        Box::new(self.item_store.iter_rec(&item_pointer, &self.backend).into_iter())
     }
 
     fn deref_handle(&self, handle: &DataStorePointer) -> Option<DataPrimitive> {

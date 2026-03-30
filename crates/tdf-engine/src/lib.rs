@@ -43,6 +43,13 @@ mod tests {
 
         let items: Vec<_> = reader.iter_page_items(1).collect();
         assert_eq!(items.len(), 1);
+
+        for page in 0..2 {
+            println!("--- page {page} ---");
+            for (primitive, unique) in reader.iter_page_items(page) {
+                println!("  pos=({}, {})  item={primitive:?}", unique.position.x, unique.position.y);
+            }
+        }
     }
 
     #[test]

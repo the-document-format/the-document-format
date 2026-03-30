@@ -90,6 +90,13 @@ impl<P, B: Backend> BackendView<P, B> {
     }
 }
 
+/// Generic push/get bridge so Store impls can call the backend without
+/// needing to know which concrete method (push_page, push_item, …) to use.
+pub trait BackendAccess<P, U> {
+    fn push_cell(&mut self, item: StoreItemCell<P, U>) -> BackendPointer<P, U>;
+    fn get_cell(&self, pointer: &BackendPointer<P, U>) -> Option<&StoreItemCell<P, U>>;
+}
+
 /// Physical storage for all four TDF stores.
 pub trait Backend {
     fn push_page(&mut self, item: StoreItemCell<ItemPointer, ()>)
