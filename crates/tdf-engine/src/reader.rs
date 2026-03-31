@@ -40,6 +40,7 @@ pub struct VecReader {
 }
 
 impl VecReader {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         backend: VecBackend,
         page_store: PageStore,

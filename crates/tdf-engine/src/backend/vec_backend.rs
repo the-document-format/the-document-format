@@ -223,7 +223,7 @@ impl BackendAccess<SignaturePrimitive, SignatureUnique> for VecBackend {
                 start,
                 len: items.len(),
             },
-            unique: SignatureUnique::default(),
+            unique: SignatureUnique,
             _phantom: PhantomData,
         }
     }

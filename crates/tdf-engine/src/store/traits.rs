@@ -27,6 +27,7 @@ pub trait Store<P: PrimitiveType, U: UniqueType, B: Backend + BackendAccess<P, U
         backend: &'a B,
     ) -> Option<&'a StoreItemCell<P, U, <B as BackendAccess<P, U>>::Group>>;
     fn size(&self, backend: &B) -> usize;
+    #[allow(clippy::type_complexity)]
     fn iter<'a>(
         &self,
         backend: &'a B,
