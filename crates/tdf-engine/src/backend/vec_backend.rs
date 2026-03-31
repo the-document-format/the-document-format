@@ -58,10 +58,13 @@ impl BackendAccess<ItemPointer, ()> for VecBackend {
         &mut self,
         items: Vec<BackendPointer<ItemPointer, (), VecRange>>,
     ) -> BackendPointer<ItemPointer, (), VecRange> {
-        let uniques: Vec<()> = items.iter().map(|p| match p {
-            BackendPointer::Single { unique, .. } => *unique,
-            BackendPointer::Group { .. } => (),
-        }).collect();
+        let uniques: Vec<()> = items
+            .iter()
+            .map(|p| match p {
+                BackendPointer::Single { unique, .. } => *unique,
+                BackendPointer::Group { .. } => (),
+            })
+            .collect();
         let start = self.page_store.len();
         for ptr in &items {
             self.push_cell(StoreItemCell::BackendPointer(ptr.clone()));
@@ -115,10 +118,13 @@ impl BackendAccess<ItemPrimitive, ItemUnique> for VecBackend {
         &mut self,
         items: Vec<BackendPointer<ItemPrimitive, ItemUnique, VecRange>>,
     ) -> BackendPointer<ItemPrimitive, ItemUnique, VecRange> {
-        let uniques: Vec<ItemUnique> = items.iter().map(|p| match p {
-            BackendPointer::Single { unique, .. } => unique.clone(),
-            BackendPointer::Group { .. } => ItemUnique::default(),
-        }).collect();
+        let uniques: Vec<ItemUnique> = items
+            .iter()
+            .map(|p| match p {
+                BackendPointer::Single { unique, .. } => unique.clone(),
+                BackendPointer::Group { .. } => ItemUnique::default(),
+            })
+            .collect();
         let start = self.item_store.len();
         for ptr in &items {
             self.push_cell(StoreItemCell::BackendPointer(ptr.clone()));
@@ -172,10 +178,13 @@ impl BackendAccess<DataPrimitive, ()> for VecBackend {
         &mut self,
         items: Vec<BackendPointer<DataPrimitive, (), VecRange>>,
     ) -> BackendPointer<DataPrimitive, (), VecRange> {
-        let uniques: Vec<()> = items.iter().map(|p| match p {
-            BackendPointer::Single { unique, .. } => *unique,
-            BackendPointer::Group { .. } => (),
-        }).collect();
+        let uniques: Vec<()> = items
+            .iter()
+            .map(|p| match p {
+                BackendPointer::Single { unique, .. } => *unique,
+                BackendPointer::Group { .. } => (),
+            })
+            .collect();
         let start = self.data_store.len();
         for ptr in &items {
             self.push_cell(StoreItemCell::BackendPointer(ptr.clone()));
@@ -229,10 +238,13 @@ impl BackendAccess<SignaturePrimitive, SignatureUnique> for VecBackend {
         &mut self,
         items: Vec<BackendPointer<SignaturePrimitive, SignatureUnique, VecRange>>,
     ) -> BackendPointer<SignaturePrimitive, SignatureUnique, VecRange> {
-        let uniques: Vec<SignatureUnique> = items.iter().map(|p| match p {
-            BackendPointer::Single { unique, .. } => unique.clone(),
-            BackendPointer::Group { .. } => SignatureUnique,
-        }).collect();
+        let uniques: Vec<SignatureUnique> = items
+            .iter()
+            .map(|p| match p {
+                BackendPointer::Single { unique, .. } => unique.clone(),
+                BackendPointer::Group { .. } => SignatureUnique,
+            })
+            .collect();
         let start = self.sig_store.len();
         for ptr in &items {
             self.push_cell(StoreItemCell::BackendPointer(ptr.clone()));

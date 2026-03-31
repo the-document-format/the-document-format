@@ -84,7 +84,8 @@ where
                             _phantom,
                         } => BackendPointer::Group {
                             group,
-                            unique: inner_us.into_iter()
+                            unique: inner_us
+                                .into_iter()
                                 .map(|u| outer_unique.clone().reduce(u))
                                 .collect(),
                             _phantom,
