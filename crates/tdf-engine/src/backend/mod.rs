@@ -41,7 +41,7 @@ pub enum BackendPointer<T, U, G> {
     /// References a grouped range of items.
     Group {
         group: G,
-        unique: U,
+        unique: Vec<U>,
         #[serde(skip)]
         _phantom: PhantomData<T>,
     },
@@ -113,7 +113,7 @@ pub trait BackendAccess<P, U> {
     fn expand_group(
         &self,
         group: &Self::Group,
-        unique: U,
+        uniques: Vec<U>,
     ) -> Vec<BackendPointer<P, U, Self::Group>>;
 }
 

@@ -80,11 +80,13 @@ where
                         },
                         BackendPointer::Group {
                             group,
-                            unique: inner_u,
+                            unique: inner_us,
                             _phantom,
                         } => BackendPointer::Group {
                             group,
-                            unique: outer_unique.clone().reduce(inner_u),
+                            unique: inner_us.into_iter()
+                                .map(|u| outer_unique.clone().reduce(u))
+                                .collect(),
                             _phantom,
                         },
                     };
