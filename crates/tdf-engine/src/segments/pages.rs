@@ -1,3 +1,4 @@
+use crate::backend::VecBackend;
 use crate::primitives::page::PageStorePointer;
 use serde::{Deserialize, Serialize};
 
@@ -23,7 +24,7 @@ impl PagesSegment {
 #[derive(Serialize, Deserialize, Debug)]
 pub struct PageEntry {
     pub tags: PageTags,
-    pub page_ref: PageStorePointer,
+    pub page_ref: PageStorePointer<VecBackend>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

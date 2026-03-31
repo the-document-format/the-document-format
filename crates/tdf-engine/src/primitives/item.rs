@@ -1,4 +1,4 @@
-use crate::primitives::data::DataStorePointer;
+use crate::{primitives::data::DataStorePointer, store::traits::StoreTypes};
 use serde::{Deserialize, Serialize};
 
 /// Everything that can appear on a page.
@@ -106,4 +106,11 @@ impl crate::backend::UniqueReduce for ItemUnique {
             },
         }
     }
+}
+
+pub struct ItemTypes;
+
+impl StoreTypes for ItemTypes {
+    type Primitive = ItemPrimitive;
+    type Unique = ItemUnique;
 }

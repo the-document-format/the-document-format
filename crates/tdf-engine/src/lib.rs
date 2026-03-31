@@ -2,6 +2,8 @@
 //!
 //! Entry points: [`reader::TDFReader`] for reading, [`builder::TDFBuilder`] for building.
 
+#![feature(associated_type_defaults)]
+
 pub mod backend;
 pub mod builder;
 pub mod misc;

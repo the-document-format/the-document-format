@@ -1,4 +1,4 @@
-use crate::misc::Instant;
+use crate::{misc::Instant, store::traits::StoreTypes};
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -17,4 +17,11 @@ impl crate::backend::UniqueReduce for SignatureUnique {
     fn reduce(self, _other: Self) -> Self {
         Self
     }
+}
+
+pub struct SignatureTypes;
+
+impl StoreTypes for SignatureTypes {
+    type Primitive = SignaturePrimitive;
+    type Unique = SignatureUnique;
 }

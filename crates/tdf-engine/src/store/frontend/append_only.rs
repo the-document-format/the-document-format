@@ -1,54 +1,52 @@
 //! AppendOnlyStore: insertion order is preserved and meaningful.
 
 use crate::backend::{Backend, BackendAccess, BackendPointer, BackendView, StoreItemCell};
-use crate::store::traits::{PrimitiveType, Store, UniqueType};
+use crate::store::traits::{Store, StoreTypes};
 
 /// Enforces append-only insertion order.
 #[derive(Debug)]
-pub struct AppendOnlyStore<P, U, B: Backend> {
-    pub view: BackendView<P, B>,
-    _phantom: std::marker::PhantomData<U>,
+pub struct AppendOnlyFrontend<S: StoreTypes, B: Backend> {
+    pub view: BackendView<S::Primitive, B>,
+    _phantom: std::marker::PhantomData<S::Unique>,
 }
 
-impl<P, U, B: Backend> AppendOnlyStore<P, U, B> {
+impl<S: StoreTypes, B: Backend> AppendOnlyFrontend<S, B> {
     pub fn new(offset: usize) -> Self {
-        AppendOnlyStore {
+        AppendOnlyFrontend {
             view: BackendView::new(offset),
             _phantom: std::marker::PhantomData,
         }
     }
 }
 
-impl<P, U, B: Backend> Default for AppendOnlyStore<P, U, B> {
+impl<S: StoreTypes, B: Backend> Default for AppendOnlyFrontend<S, B> {
     fn default() -> Self {
         Self::new(0)
     }
 }
 
-impl<P: PrimitiveType, U: UniqueType, B: Backend + BackendAccess<P, U>> Store<P, U, B>
-    for AppendOnlyStore<P, U, B>
-{
-    fn push(
-        &mut self,
-        item: P,
-        backend: &mut B,
-    ) -> BackendPointer<P, U, <B as BackendAccess<P, U>>::Group> {
+impl<S: StoreTypes, B: Backend> StoreTypes for AppendOnlyFrontend<S, B> {
+    type Primitive = S::Primitive;
+    type Unique = S::Unique;
+}
+
+impl<S: StoreTypes, B: Backend + BackendAccess<Self, B>> Store<B> for AppendOnlyFrontend<S, B> {
+    fn push(&mut self, item: S::Primitive, backend: &mut B) -> BackendPointer<Self, B> {
         backend.push_cell(StoreItemCell::StorePrimitive(item))
     }
     fn get<'a>(
         &self,
-        pointer: &BackendPointer<P, U, <B as BackendAccess<P, U>>::Group>,
+        pointer: &BackendPointer<Self, B>,
         backend: &'a B,
-    ) -> Option<&'a StoreItemCell<P, U, <B as BackendAccess<P, U>>::Group>> {
+    ) -> Option<&'a StoreItemCell<Self, B>> {
         backend.get_cell(pointer)
     }
-    fn size(&self, backend: &B) -> usize {
+    fn size(&self, _backend: &B) -> usize {
         todo!()
     }
-    fn iter<'a>(
-        &self,
-        backend: &'a B,
-    ) -> Box<dyn Iterator<Item = &'a StoreItemCell<P, U, <B as BackendAccess<P, U>>::Group>> + 'a>
+    fn iter<'a>(&self, _backend: &'a B) -> Box<dyn Iterator<Item = &'a StoreItemCell<Self, B>> + 'a>
+    where
+        B: BackendAccess<Self, B>,
     {
         todo!()
     }

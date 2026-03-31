@@ -1,13 +1,10 @@
 //! The TDFReader: highest-level interface for reading a TDF document.
 
+use crate::backend::vec_backend::{DataStore, ItemStore, PageStore, SignatureStore};
 use crate::backend::{Backend, VecBackend};
 use crate::primitives::data::{DataPrimitive, DataStorePointer};
 use crate::primitives::item::{ItemPrimitive, ItemUnique};
-use crate::primitives::page::ItemPointer;
-use crate::primitives::signature::{SignaturePrimitive, SignatureUnique};
 use crate::segments::{header::HeaderSegment, meta::MetaSegment, pages::PagesSegment};
-use crate::store::frontend::append_only::AppendOnlyStore;
-use crate::store::frontend::optimized::OptimizedStore;
 
 pub trait TDFReader<B: Backend> {
     fn header(&self) -> &HeaderSegment;
@@ -22,18 +19,13 @@ pub trait TDFReader<B: Backend> {
     fn deref_handle(&self, handle: &DataStorePointer) -> Option<DataPrimitive>;
 }
 
-pub type PageStore = AppendOnlyStore<ItemPointer, (), VecBackend>;
-pub type ItemStore = OptimizedStore<ItemPrimitive, ItemUnique, VecBackend>;
-pub type DataStore = OptimizedStore<DataPrimitive, (), VecBackend>;
-pub type SigStore = AppendOnlyStore<SignaturePrimitive, SignatureUnique, VecBackend>;
-
 /// Concrete reader backed by a [`VecBackend`].
 pub struct VecReader {
     backend: VecBackend,
     page_store: PageStore,
     item_store: ItemStore,
     data_store: DataStore,
-    sig_store: SigStore,
+    sig_store: SignatureStore,
     header: HeaderSegment,
     meta: MetaSegment,
     pages: PagesSegment,
@@ -46,7 +38,7 @@ impl VecReader {
         page_store: PageStore,
         item_store: ItemStore,
         data_store: DataStore,
-        sig_store: SigStore,
+        sig_store: SignatureStore,
         header: HeaderSegment,
         meta: MetaSegment,
         pages: PagesSegment,
