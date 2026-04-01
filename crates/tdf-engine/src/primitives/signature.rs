@@ -19,6 +19,7 @@ impl crate::backend::UniqueReduce for SignatureUnique {
     }
 }
 
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct SignatureTypes;
 
 impl StoreTypes for SignatureTypes {

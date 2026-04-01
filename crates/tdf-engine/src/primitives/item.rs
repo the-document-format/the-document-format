@@ -1,26 +1,38 @@
-use crate::{primitives::data::DataStorePointer, store::traits::StoreTypes};
+use crate::{backend::{Backend, BackendPointer, BackendTypes}, primitives::data::{DataStorePointer, DataTypes}, store::traits::StoreTypes};
 use serde::{Deserialize, Serialize};
 
 /// Everything that can appear on a page.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub enum ItemPrimitive {
-    TextBox(TextBox),
-    Image(Image),
+#[serde(bound(
+    serialize = "B: Serialize",
+    deserialize = "DataStorePointer<B>: Deserialize<'de>"
+))]
+pub enum ItemPrimitive<B: BackendTypes> {
+    TextBox(TextBox<B>),
+    Image(Image<B>),
     Vector(Vector),
     Shape(Shape),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct TextBox {
+#[serde(bound(
+    serialize = "B: Serialize",
+    deserialize = "DataStorePointer<B>: Deserialize<'de>"
+))]
+pub struct TextBox<B: BackendTypes> {
     pub content: String,
-    pub font: Option<DataStorePointer>,
+    pub font: Option<DataStorePointer<B>>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-pub struct Image {
+#[serde(bound(
+    serialize = "B: Serialize",
+    deserialize = "DataStorePointer<B>: Deserialize<'de>"
+))]
+pub struct Image<B: BackendTypes> {
     pub width: u32,
     pub height: u32,
-    pub data: DataStorePointer,
+    pub data: DataStorePointer<B>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
@@ -87,7 +99,7 @@ pub enum TextAlignment {
     Justify,
 }
 
-impl crate::store::traits::PrimitiveType for ItemPrimitive {}
+impl<B: BackendTypes> crate::store::traits::PrimitiveType for ItemPrimitive<B> {}
 impl crate::store::traits::UniqueType for ItemUnique {}
 impl crate::backend::UniqueReduce for ItemUnique {
     fn reduce(self, other: Self) -> Self {
@@ -108,9 +120,13 @@ impl crate::backend::UniqueReduce for ItemUnique {
     }
 }
 
-pub struct ItemTypes;
+#[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone, Copy)]
+pub struct ItemTypes<B: BackendTypes>{
+    #[serde(skip)]
+    _b: std::marker::PhantomData<B>,
+}
 
-impl StoreTypes for ItemTypes {
-    type Primitive = ItemPrimitive;
+impl <B: BackendTypes> StoreTypes for ItemTypes<B> {
+    type Primitive = ItemPrimitive<B>;
     type Unique = ItemUnique;
 }

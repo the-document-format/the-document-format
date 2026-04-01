@@ -1,18 +1,24 @@
-use crate::backend::VecBackend;
+use crate::backend::{BackendTypes};
 use crate::primitives::page::PageStorePointer;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug, Default)]
-pub struct PagesSegment {
-    pub pages: Vec<PageEntry>,
+#[serde(bound(
+    serialize = "B: BackendTypes",
+    deserialize = "B: BackendTypes"
+))]
+pub struct PagesSegment<B: BackendTypes> {
+    pub pages: Vec<PageEntry<B>>,
 }
 
-impl PagesSegment {
+impl<B: BackendTypes> PagesSegment<B> {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            pages: vec![]
+        }
     }
 
-    pub fn get_page(&self, page_number: usize) -> Option<&PageEntry> {
+    pub fn get_page(&self, page_number: usize) -> Option<&PageEntry<B>> {
         self.pages.get(page_number)
     }
 
@@ -22,9 +28,13 @@ impl PagesSegment {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
-pub struct PageEntry {
+#[serde(bound(
+    serialize = "B: BackendTypes",
+    deserialize = "B: BackendTypes"
+))]
+pub struct PageEntry<B: BackendTypes> {
     pub tags: PageTags,
-    pub page_ref: PageStorePointer<VecBackend>,
+    pub page_ref: PageStorePointer<B>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Default)]

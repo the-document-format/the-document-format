@@ -1,20 +1,22 @@
-use crate::backend::{Backend, BackendPointer};
+use serde::{Deserialize, Serialize};
+
+use crate::backend::{BackendPointer, BackendTypes};
 use crate::primitives::item::ItemTypes;
-use crate::store::frontend::append_only::AppendOnlyFrontend;
-use crate::store::frontend::optimized::OptimizedFrontend;
 use crate::store::traits::StoreTypes;
 
 /// A pointer from the page store into the item store.
-pub type ItemPointer<B> = BackendPointer<OptimizedFrontend<ItemTypes, B>, B>;
+pub type ItemPointer<B: BackendTypes> = BackendPointer<ItemTypes<B>, B>;
 
 /// A pointer into the page store itself.
-pub type PageStorePointer<B> = BackendPointer<AppendOnlyFrontend<PageTypes<B>, B>, B>;
+pub type PageStorePointer<B> = BackendPointer<PageTypes<B>, B>;
 
-impl<B: Backend> crate::store::traits::PrimitiveType for ItemPointer<B> {}
+impl<B: BackendTypes> crate::store::traits::PrimitiveType for ItemPointer<B> {}
 
-pub struct PageTypes<B: Backend>(std::marker::PhantomData<B>);
 
-impl<B: Backend> StoreTypes for PageTypes<B> {
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct PageTypes<B: BackendTypes>(std::marker::PhantomData<B>);
+
+impl<B: BackendTypes> StoreTypes for PageTypes<B> {
     type Primitive = ItemPointer<B>;
     type Unique = ();
 }
