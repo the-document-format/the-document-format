@@ -8,10 +8,9 @@ use crate::store::traits::StoreTypes;
 pub type ItemPointer<B: BackendTypes> = BackendPointer<ItemTypes<B>, B>;
 
 /// A pointer into the page store itself.
-pub type PageStorePointer<B> = BackendPointer<PageTypes<B>, B>;
+pub type PageStorePointer<B: BackendTypes> = BackendPointer<PageTypes<B>, B>;
 
 impl<B: BackendTypes> crate::store::traits::PrimitiveType for ItemPointer<B> {}
-
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PageTypes<B: BackendTypes>(std::marker::PhantomData<B>);

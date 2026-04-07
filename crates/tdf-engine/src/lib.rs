@@ -3,6 +3,7 @@
 //! Entry points: [`reader::TDFReader`] for reading, [`builder::TDFBuilder`] for building.
 
 #![feature(associated_type_defaults)]
+#![feature(lazy_type_alias)]
 
 pub mod backend;
 pub mod builder;
@@ -70,6 +71,60 @@ mod tests {
                 );
             }
         }
+    }
+
+    #[test]
+    fn test_iter_page_items_primitives_and_positions() {
+        use crate::builder::{DummyTDFBuilder, TDFBuilder};
+        use crate::primitives::item::*;
+        use crate::reader::TDFReader;
+
+        let reader = DummyTDFBuilder::default()
+            .add_page(vec![
+                (
+                    ItemPrimitive::Shape(Shape {
+                        kind: ShapeKind::Circle,
+                    }),
+                    ItemUnique {
+                        position: Position { x: 1, y: 2 },
+                        ..Default::default()
+                    },
+                ),
+                (
+                    ItemPrimitive::TextBox(TextBox {
+                        content: "hi".into(),
+                        font: None,
+                    }),
+                    ItemUnique {
+                        position: Position { x: 3, y: 4 },
+                        ..Default::default()
+                    },
+                ),
+            ])
+            .build();
+
+        let items: Vec<_> = reader.iter_page_items(0).collect();
+        assert_eq!(items.len(), 2);
+
+        assert_eq!(
+            items[0].0,
+            ItemPrimitive::Shape(Shape {
+                kind: ShapeKind::Circle
+            })
+        );
+        assert_eq!(items[0].1.position, Position { x: 1, y: 2 });
+
+        assert_eq!(
+            items[1].0,
+            ItemPrimitive::TextBox(TextBox {
+                content: "hi".into(),
+                font: None
+            })
+        );
+        assert_eq!(items[1].1.position, Position { x: 3, y: 4 });
+
+        // out-of-bounds page returns nothing
+        assert_eq!(reader.iter_page_items(1).count(), 0);
     }
 
     #[test]

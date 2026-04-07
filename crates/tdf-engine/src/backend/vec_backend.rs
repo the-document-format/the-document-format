@@ -24,7 +24,7 @@ pub type ItemStoreImpl = Vec<StoreItemCell<ItemTypes<VecTypes>, VecTypes>>;
 pub type DataStoreImpl = Vec<StoreItemCell<DataTypes, VecTypes>>;
 pub type SignatureStoreImpl = Vec<StoreItemCell<SignatureTypes, VecTypes>>;
 
-pub type VecInnerStoreImpl<Q> = Vec<StoreItemCell<Q, VecTypes>>;
+pub type VecInnerStoreImpl<Q: StoreTypes> = Vec<StoreItemCell<Q, VecTypes>>;
 
 /// The simplest possible backend: four `Vec`s, one per store.
 #[derive(Debug, Default)]
@@ -70,15 +70,10 @@ where
         primitive: S::Primitive,
         unique: S::Unique,
     ) -> BackendPointer<S, VecTypes> {
-        let index = self.page_store.len();
         let store = self.get_store_mut();
-
-        let new_ptr = BackendPointer::Single(VecSinglePointer { index, unique });
-        let new_cell = StoreItemCell::BackendPointer(new_ptr.clone());
-
-        store.push(new_cell);
-
-        new_ptr
+        let index = store.len();
+        store.push(StoreItemCell::StorePrimitive(primitive));
+        BackendPointer::Single(VecSinglePointer { index, unique })
     }
 
     fn get_cells(
@@ -105,21 +100,54 @@ where
     where
         <S as StoreTypes>::Unique: Default,
     {
-        todo!()
+        if items.is_empty() {
+            return BackendPointer::Group(VecGroupPointer::default());
+        }
+
+        let start = match &items[0] {
+            BackendPointer::Single(s) => s.index,
+            BackendPointer::Group(_) => todo!("nested recursive groups in group_together"),
+        };
+
+        let uniques = items
+            .iter()
+            .map(|ptr| match ptr {
+                BackendPointer::Single(s) => s.unique.clone(),
+                BackendPointer::Group(_) => todo!("nested recursive groups in group_together"),
+            })
+            .collect();
+
+        BackendPointer::Group(VecGroupPointer {
+            range: VecRange {
+                start,
+                len: items.len(),
+            },
+            uniques,
+        })
     }
 
     fn expand_group(
         &self,
-        range: &<<VecBackend as Backend>::Types as BackendTypes>::Group<S>,
+        group: &<<VecBackend as Backend>::Types as BackendTypes>::Group<S>,
     ) -> Vec<BackendPointer<S, <VecBackend as Backend>::Types>> {
-        todo!()
+        group
+            .uniques
+            .iter()
+            .enumerate()
+            .map(|(i, unique)| {
+                BackendPointer::Single(VecSinglePointer {
+                    index: group.range.start + i,
+                    unique: unique.clone(),
+                })
+            })
+            .collect()
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-struct VecSinglePointer<S: StoreTypes> {
-    index: usize,
-    unique: S::Unique,
+pub struct VecSinglePointer<S: StoreTypes> {
+    pub index: usize,
+    pub unique: S::Unique,
 }
 
 impl<S: StoreTypes> Default for VecSinglePointer<S> {
@@ -133,7 +161,7 @@ impl<S: StoreTypes> Default for VecSinglePointer<S> {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-struct VecGroupPointer<S: StoreTypes> {
+pub struct VecGroupPointer<S: StoreTypes> {
     range: VecRange,
     uniques: Vec<S::Unique>,
 }
@@ -153,6 +181,66 @@ pub struct VecTypes;
 impl BackendTypes for VecTypes {
     type Single<S: StoreTypes> = VecSinglePointer<S>;
     type Group<S: StoreTypes> = VecGroupPointer<S>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::backend::BackendAccess;
+    use crate::primitives::item::{
+        ItemPrimitive, ItemTypes, ItemUnique, Position, Shape, ShapeKind,
+    };
+
+    #[test]
+    fn vec_group_pointer_default_is_empty() {
+        let d = VecGroupPointer::<ItemTypes<VecTypes>>::default();
+        assert_eq!(d.range.start, 0);
+        assert_eq!(d.range.len, 0);
+        assert!(d.uniques.is_empty());
+    }
+
+    #[test]
+    fn group_together_captures_start_and_uniques() {
+        let mut backend = VecBackend::new();
+
+        let u0 = ItemUnique {
+            position: Position { x: 1, y: 2 },
+            ..Default::default()
+        };
+        let u1 = ItemUnique {
+            position: Position { x: 3, y: 4 },
+            ..Default::default()
+        };
+
+        // Push two items so they land at indices 0 and 1
+        let ptr0 = backend.push_cell(
+            ItemPrimitive::Shape(Shape {
+                kind: ShapeKind::Circle,
+            }),
+            u0.clone(),
+        );
+        let ptr1 = backend.push_cell(
+            ItemPrimitive::Shape(Shape {
+                kind: ShapeKind::Rectangle,
+            }),
+            u1.clone(),
+        );
+
+        let group = <VecBackend as BackendAccess<ItemTypes<VecTypes>, VecBackend>>::group_together(
+            &mut backend,
+            vec![ptr0, ptr1],
+        );
+
+        match group {
+            BackendPointer::Group(g) => {
+                assert_eq!(g.range.start, 0);
+                assert_eq!(g.range.len, 2);
+                assert_eq!(g.uniques[0], u0);
+                assert_eq!(g.uniques[1], u1);
+            }
+            _ => panic!("expected a Group pointer"),
+        }
+    }
 }
 
 impl Backend for VecBackend {

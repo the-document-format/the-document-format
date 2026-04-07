@@ -1,6 +1,9 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{backend::{BackendPointer, BackendTypes}, store::traits::StoreTypes};
+use crate::{
+    backend::{BackendPointer, BackendTypes},
+    store::traits::StoreTypes,
+};
 
 /// Large blobs loaded lazily via `TDFReader::deref_handle`.
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]

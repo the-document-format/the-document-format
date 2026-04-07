@@ -38,6 +38,7 @@ pub trait Store<B: Backend> {
     fn push(
         &mut self,
         item: <Self::Types as StoreTypes>::Primitive,
+        unique: <Self::Types as StoreTypes>::Unique,
         backend: &mut B,
     ) -> BackendPointer<Self::Types, B::Types>
     where

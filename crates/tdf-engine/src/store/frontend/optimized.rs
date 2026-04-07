@@ -30,15 +30,22 @@ impl<S: StoreTypes, B: Backend> Default for OptimizedFrontend<S, B> {
 
 impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Store<B> for OptimizedFrontend<S, B> {
     type Types = S;
-    fn push(&mut self, item: S::Primitive, backend: &mut B) -> BackendPointer<S, B::Types> {
-        backend.push_cell(StoreItemCell::StorePrimitive(item))
+    fn push(
+        &mut self,
+        item: S::Primitive,
+        unique: S::Unique,
+        backend: &mut B,
+    ) -> BackendPointer<S, B::Types> {
+        backend.push_cell(item, unique)
     }
     fn get<'a>(
         &self,
         pointer: &BackendPointer<S, B::Types>,
         backend: &'a B,
     ) -> Option<&'a StoreItemCell<S, B::Types>> {
-        backend.get_cell(pointer)
+        backend
+            .get_cells(pointer)
+            .and_then(|cells| cells.into_iter().next())
     }
     fn size(&self, _backend: &B) -> usize {
         todo!()

@@ -3,7 +3,6 @@
 use crate::backend::vec_backend::VecTypes;
 use crate::backend::{BackendAccess, BackendPointer, VecBackend};
 use crate::primitives::item::{ItemPrimitive, ItemTypes, ItemUnique};
-use crate::primitives::page::ItemPointer;
 use crate::reader::VecReader;
 use crate::segments::{
     header::{HeaderSegment, SegmentOffsets},
@@ -54,22 +53,25 @@ impl TDFBuilder for DummyTDFBuilder {
 
     fn build(mut self) -> VecReader {
         for page_items in self.staged_pages {
-            let mut item_ptrs: Vec<BackendPointer<ItemTypes<VecTypes>, VecTypes>> = Vec::new();
+            let mut item_ptrs: Vec<BackendPointer<ItemTypes<VecTypes>, VecTypes>> = vec![];
 
-            for (primitive, _unique) in page_items {
-                let ptr = self.item_store.push(primitive, &mut self.backend);
+            for (primitive, unique) in page_items {
+                let ptr = self.item_store.push(primitive, unique, &mut self.backend);
                 item_ptrs.push(ptr);
             }
 
-            let items_group = self.backend.group_together(item_ptrs);
-            let page_ptr = BackendPointer::new_single(index)
+            let item_pointer =
+                <VecBackend as BackendAccess<ItemTypes<VecTypes>, VecBackend>>::group_together(
+                    &mut self.backend,
+                    item_ptrs,
+                );
 
-            let page_entry = PageEntry {
-                page_ref,
+            let page_ptr = self.page_store.push(item_pointer, (), &mut self.backend);
+
+            self.pages.pages.push(PageEntry {
+                page_ref: page_ptr,
                 tags: PageTags::default(),
-            };
-
-            self.pages.pages.push(page_entry);
+            });
         }
 
         let header = HeaderSegment::new(0, SegmentOffsets::new(0, 0, 0));
