@@ -1,22 +1,22 @@
 //! The TDFReader: highest-level interface for reading a TDF document.
 
-use crate::backend::vec_backend::{DataStore, ItemStore, PageStore, SignatureStore};
-use crate::backend::{Backend, VecBackend};
+use crate::backend::vec_backend::{DataStore, ItemStore, PageStore, SignatureStore, VecTypes};
+use crate::backend::{BackendTypes, VecBackend};
 use crate::primitives::data::{DataPrimitive, DataStorePointer};
 use crate::primitives::item::{ItemPrimitive, ItemUnique};
 use crate::segments::{header::HeaderSegment, meta::MetaSegment, pages::PagesSegment};
 
-pub trait TDFReader<B: Backend> {
+pub trait TDFReader<B: BackendTypes> {
     fn header(&self) -> &HeaderSegment;
     fn meta(&self) -> &MetaSegment;
-    fn pages(&self) -> &PagesSegment;
+    fn pages(&self) -> &PagesSegment<B>;
 
     fn iter_page_items(
         &self,
         page_number: usize,
-    ) -> Box<dyn Iterator<Item = (ItemPrimitive, ItemUnique)>>;
+    ) -> Box<dyn Iterator<Item = (ItemPrimitive<B>, ItemUnique)>>;
 
-    fn deref_handle(&self, handle: &DataStorePointer) -> Option<DataPrimitive>;
+    fn deref_handle(&self, handle: &DataStorePointer<B>) -> Option<DataPrimitive>;
 }
 
 /// Concrete reader backed by a [`VecBackend`].
@@ -28,7 +28,7 @@ pub struct VecReader {
     sig_store: SignatureStore,
     header: HeaderSegment,
     meta: MetaSegment,
-    pages: PagesSegment,
+    pages: PagesSegment<VecTypes>,
 }
 
 impl VecReader {
@@ -41,7 +41,7 @@ impl VecReader {
         sig_store: SignatureStore,
         header: HeaderSegment,
         meta: MetaSegment,
-        pages: PagesSegment,
+        pages: PagesSegment<VecTypes>,
     ) -> Self {
         Self {
             backend,
@@ -56,7 +56,7 @@ impl VecReader {
     }
 }
 
-impl TDFReader<VecBackend> for VecReader {
+impl TDFReader for VecReader {
     fn header(&self) -> &HeaderSegment {
         &self.header
     }

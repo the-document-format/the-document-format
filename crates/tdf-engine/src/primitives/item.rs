@@ -1,4 +1,8 @@
-use crate::{backend::{Backend, BackendPointer, BackendTypes}, primitives::data::{DataStorePointer, DataTypes}, store::traits::StoreTypes};
+use crate::{
+    backend::{Backend, BackendPointer, BackendTypes},
+    primitives::data::{DataStorePointer, DataTypes},
+    store::traits::StoreTypes,
+};
 use serde::{Deserialize, Serialize};
 
 /// Everything that can appear on a page.
@@ -121,12 +125,12 @@ impl crate::backend::UniqueReduce for ItemUnique {
 }
 
 #[derive(Serialize, Deserialize, Debug, Hash, PartialEq, Eq, Clone, Copy)]
-pub struct ItemTypes<B: BackendTypes>{
+pub struct ItemTypes<B: BackendTypes> {
     #[serde(skip)]
     _b: std::marker::PhantomData<B>,
 }
 
-impl <B: BackendTypes> StoreTypes for ItemTypes<B> {
+impl<B: BackendTypes> StoreTypes for ItemTypes<B> {
     type Primitive = ItemPrimitive<B>;
     type Unique = ItemUnique;
 }

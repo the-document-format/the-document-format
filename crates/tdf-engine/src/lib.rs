@@ -21,7 +21,7 @@ mod tests {
         use crate::primitives::item::*;
         use crate::reader::TDFReader;
 
-        let reader = DummyTDFBuilder::new()
+        let reader = DummyTDFBuilder::default()
             .add_page(vec![
                 (
                     ItemPrimitive::Shape(Shape {

@@ -43,7 +43,10 @@ impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Store<B> for OptimizedFron
     fn size(&self, _backend: &B) -> usize {
         todo!()
     }
-    fn iter<'a>(&self, _backend: &'a B) -> Box<dyn Iterator<Item = &'a StoreItemCell<S, B::Types>> + 'a>
+    fn iter<'a>(
+        &self,
+        _backend: &'a B,
+    ) -> Box<dyn Iterator<Item = &'a StoreItemCell<S, B::Types>> + 'a>
     where
         B: BackendAccess<S, B>,
     {

@@ -25,8 +25,9 @@ pub trait UniqueType:
 /// Lightweight descriptor: just the Primitive and Unique associated types.
 /// Used as the bound on `BackendPointer<S, B>` and `BackendAccess<S, B>` to
 /// avoid the cyclic bound that arises from using `Store<B>` there directly.
-pub trait StoreTypes: Sized + Serialize
-        + for<'de> Deserialize<'de> + Debug + Clone + PartialEq + Eq + Hash {
+pub trait StoreTypes:
+    Sized + Serialize + for<'de> Deserialize<'de> + Debug + Clone + PartialEq + Eq + Hash
+{
     type Primitive: PrimitiveType;
     type Unique: UniqueType;
 }
@@ -67,14 +68,20 @@ pub trait StoreExt<B: Backend>: Store<B> {
         &self,
         pointer: &BackendPointer<Self::Types, B::Types>,
         backend: &B,
-    ) -> Vec<(<Self::Types as StoreTypes>::Primitive, <Self::Types as StoreTypes>::Unique)>
+    ) -> Vec<(
+        <Self::Types as StoreTypes>::Primitive,
+        <Self::Types as StoreTypes>::Unique,
+    )>
     where
         B: BackendAccess<Self::Types, B>;
     fn iter_range_rec(
         &self,
         pointer: &BackendPointer<Self::Types, B::Types>,
         backend: &B,
-    ) -> Vec<(<Self::Types as StoreTypes>::Primitive, <Self::Types as StoreTypes>::Unique)>
+    ) -> Vec<(
+        <Self::Types as StoreTypes>::Primitive,
+        <Self::Types as StoreTypes>::Unique,
+    )>
     where
         B: BackendAccess<Self::Types, B>;
     fn checksum(&self, backend: &B) -> crate::misc::Hash;

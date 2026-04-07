@@ -1,18 +1,15 @@
 //! In-memory backend using four Vecs — one per store.
 
-use std::marker::PhantomData;
-
 use serde::{Deserialize, Serialize};
 
-use crate::backend::{Backend, BackendAccess, BackendPointer, BackendTypes, StoreItemCell};
+use crate::backend::{
+    Backend, BackendAccess, BackendPointer, BackendTypes, GetStore, StoreItemCell,
+};
 use crate::primitives::data::DataTypes;
 use crate::primitives::item::ItemTypes;
 use crate::primitives::page::PageTypes;
 use crate::primitives::signature::SignatureTypes;
-use crate::primitives::{item::ItemUnique, signature::SignatureUnique};
-use crate::store::frontend::append_only::AppendOnlyFrontend;
-use crate::store::frontend::optimized::OptimizedFrontend;
-use crate::store::traits::{StoreTypes};
+use crate::store::traits::StoreTypes;
 
 /// VecBackend's group range: a contiguous index range.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -21,20 +18,41 @@ pub struct VecRange {
     pub len: usize,
 }
 
-// Concrete store type aliases used for VecBackend's internal storage.
-pub type PageStore = AppendOnlyFrontend<PageTypes<VecTypes>, VecBackend>;
-pub type ItemStore = OptimizedFrontend<ItemTypes<VecTypes>, VecBackend>;
-pub type DataStore = OptimizedFrontend<DataTypes, VecBackend>;
-pub type SignatureStore = AppendOnlyFrontend<SignatureTypes, VecBackend>;
+// Concrete in-memory storage (one `Vec` per store).
+pub type PageStoreImpl = Vec<StoreItemCell<PageTypes<VecTypes>, VecTypes>>;
+pub type ItemStoreImpl = Vec<StoreItemCell<ItemTypes<VecTypes>, VecTypes>>;
+pub type DataStoreImpl = Vec<StoreItemCell<DataTypes, VecTypes>>;
+pub type SignatureStoreImpl = Vec<StoreItemCell<SignatureTypes, VecTypes>>;
+
+pub type VecInnerStoreImpl<Q> = Vec<StoreItemCell<Q, VecTypes>>;
 
 /// The simplest possible backend: four `Vec`s, one per store.
 #[derive(Debug, Default)]
 pub struct VecBackend {
-    page_store: Vec<StoreItemCell<PageTypes<VecTypes>, VecTypes>>,
-    item_store: Vec<StoreItemCell<ItemTypes<VecTypes>, VecTypes>>,
-    data_store: Vec<StoreItemCell<DataTypes, VecTypes>>,
-    sig_store: Vec<StoreItemCell<SignatureTypes, VecTypes>>,
+    page_store: PageStoreImpl,
+    item_store: ItemStoreImpl,
+    data_store: DataStoreImpl,
+    sig_store: SignatureStoreImpl,
 }
+
+macro_rules! impl_get_store {
+    ($store_impl:ty, $field:ident) => {
+        impl GetStore<$store_impl> for VecBackend {
+            fn get_store(&self) -> &$store_impl {
+                &self.$field
+            }
+
+            fn get_store_mut(&mut self) -> &mut $store_impl {
+                &mut self.$field
+            }
+        }
+    };
+}
+
+impl_get_store!(PageStoreImpl, page_store);
+impl_get_store!(ItemStoreImpl, item_store);
+impl_get_store!(DataStoreImpl, data_store);
+impl_get_store!(SignatureStoreImpl, sig_store);
 
 impl VecBackend {
     pub fn new() -> Self {
@@ -42,239 +60,61 @@ impl VecBackend {
     }
 }
 
-impl BackendAccess<PageTypes<VecTypes>, VecBackend> for VecBackend {
+impl<S> BackendAccess<S, VecBackend> for VecBackend
+where
+    S: StoreTypes,
+    VecBackend: GetStore<VecInnerStoreImpl<S>>,
+{
     fn push_cell(
         &mut self,
-        item: StoreItemCell<PageTypes<VecTypes>, VecTypes>,
-    ) -> BackendPointer<PageTypes<VecTypes>, VecTypes> {
+        primitive: S::Primitive,
+        unique: S::Unique,
+    ) -> BackendPointer<S, VecTypes> {
         let index = self.page_store.len();
-        self.page_store.push(item);
-        BackendPointer::<PageTypes<VecTypes>, VecTypes>::Single(
-            VecSinglePointer::<PageTypes<VecTypes>> {
-                index: index,
-                unique: (),
-            }
-        )
+        let store = self.get_store_mut();
+
+        let new_ptr = BackendPointer::Single(VecSinglePointer { index, unique });
+        let new_cell = StoreItemCell::BackendPointer(new_ptr.clone());
+
+        store.push(new_cell);
+
+        new_ptr
     }
-    fn get_cell(
+
+    fn get_cells(
         &self,
-        pointer: &BackendPointer<PageTypes<VecTypes>, VecTypes>,
-    ) -> Option<&StoreItemCell<PageTypes<VecTypes>, VecTypes>> {
+        pointer: &BackendPointer<S, <VecBackend as Backend>::Types>,
+    ) -> Option<Vec<&StoreItemCell<S, <VecBackend as Backend>::Types>>> {
+        let store = self.get_store();
+
         match pointer {
-            BackendPointer::Single(VecSinglePointer::<PageTypes<VecTypes>> { index, .. }) => self.page_store.get(*index),
-            BackendPointer::Group { .. } => None,
+            BackendPointer::Single(single) => store.get(single.index).map(|cell| vec![cell]),
+            BackendPointer::Group(group) => {
+                let range = &group.range;
+                store
+                    .get(range.start..range.start + range.len)
+                    .map(|slice| slice.iter().collect())
+            }
         }
     }
+
     fn group_together(
         &mut self,
-        items: Vec<BackendPointer<PageTypes<VecTypes>, VecTypes>>,
-    ) -> BackendPointer<PageTypes<VecTypes>, VecTypes> {
-        let uniques: Vec<()> = items.iter().map(|_| ()).collect();
-        let start = self.page_store.len();
-        for ptr in &items {
-            self.push_cell(StoreItemCell::BackendPointer(ptr.clone()));
-        }
-        BackendPointer::Group(VecGroupPointer::<PageTypes<VecTypes>> {
-            range: VecRange {
-                start: start,
-                len: items.len(),
-            },
-            uniques,
-        })
+        items: Vec<BackendPointer<S, <VecBackend as Backend>::Types>>,
+    ) -> BackendPointer<S, <VecBackend as Backend>::Types>
+    where
+        <S as StoreTypes>::Unique: Default,
+    {
+        todo!()
     }
+
     fn expand_group(
         &self,
-        group: &VecGroupPointer<PageTypes<VecTypes>>,
-    ) -> Vec<BackendPointer<PageTypes<VecTypes>, VecTypes>> {
-        (group.range.start..group.range.start + group.range.len)
-            .zip(&group.uniques)
-            .map(|(i, u)| BackendPointer::Single(VecSinglePointer::<PageTypes<VecTypes>> {
-                index: i,
-                unique: *u,
-            }))
-            .collect()
+        range: &<<VecBackend as Backend>::Types as BackendTypes>::Group<S>,
+    ) -> Vec<BackendPointer<S, <VecBackend as Backend>::Types>> {
+        todo!()
     }
 }
-
-// impl BackendAccess<ItemTypes<VecTypes>, VecTypes> for VecBackend {
-//     fn push_cell(
-//         &mut self,
-//         item: StoreItemCell<ItemStore, VecBackend>,
-//     ) -> BackendPointer<ItemStore, VecBackend> {
-//         let index = self.item_store.len();
-//         self.item_store.push(item);
-//         BackendPointer::Single {
-//             index,
-//             unique: ItemUnique::default(),
-//             _phantom: PhantomData,
-//         }
-//     }
-//     fn get_cell(
-//         &self,
-//         pointer: &BackendPointer<ItemStore, VecBackend>,
-//     ) -> Option<&StoreItemCell<ItemStore, VecBackend>> {
-//         match pointer {
-//             BackendPointer::Single { index, .. } => self.item_store.get(*index),
-//             BackendPointer::Group { .. } => None,
-//         }
-//     }
-//     fn group_together(
-//         &mut self,
-//         items: Vec<BackendPointer<ItemStore, VecBackend>>,
-//     ) -> BackendPointer<ItemStore, VecBackend> {
-//         let uniques: Vec<ItemUnique> = items
-//             .iter()
-//             .map(|p| match p {
-//                 BackendPointer::Single { unique, .. } => unique.clone(),
-//                 BackendPointer::Group { .. } => ItemUnique::default(),
-//             })
-//             .collect();
-//         let start = self.item_store.len();
-//         for ptr in &items {
-//             self.push_cell(StoreItemCell::BackendPointer(ptr.clone()));
-//         }
-//         BackendPointer::Group {
-//             range: VecRange {
-//                 start,
-//                 len: items.len(),
-//             },
-//             uniques,
-//             _phantom: PhantomData,
-//         }
-//     }
-//     fn expand_group(
-//         &self,
-//         range: &VecRange,
-//         uniques: Vec<ItemUnique>,
-//     ) -> Vec<BackendPointer<ItemStore, VecBackend>> {
-//         (range.start..range.start + range.len)
-//             .zip(uniques)
-//             .map(|(i, u)| BackendPointer::Single {
-//                 index: i,
-//                 unique: u,
-//                 _phantom: PhantomData,
-//             })
-//             .collect()
-//     }
-// }
-
-// impl BackendAccess<DataStore, VecBackend> for VecBackend {
-//     fn push_cell(
-//         &mut self,
-//         item: StoreItemCell<DataStore, VecBackend>,
-//     ) -> BackendPointer<DataStore, VecBackend> {
-//         let index = self.data_store.len();
-//         self.data_store.push(item);
-//         BackendPointer::Single {
-//             index,
-//             unique: (),
-//             _phantom: PhantomData,
-//         }
-//     }
-//     fn get_cell(
-//         &self,
-//         pointer: &BackendPointer<DataStore, VecBackend>,
-//     ) -> Option<&StoreItemCell<DataStore, VecBackend>> {
-//         match pointer {
-//             BackendPointer::Single { index, .. } => self.data_store.get(*index),
-//             BackendPointer::Group { .. } => None,
-//         }
-//     }
-//     fn group_together(
-//         &mut self,
-//         items: Vec<BackendPointer<DataStore, VecBackend>>,
-//     ) -> BackendPointer<DataStore, VecBackend> {
-//         let uniques: Vec<()> = items.iter().map(|_| ()).collect();
-//         let start = self.data_store.len();
-//         for ptr in &items {
-//             self.push_cell(StoreItemCell::BackendPointer(ptr.clone()));
-//         }
-//         BackendPointer::Group {
-//             range: VecRange {
-//                 start,
-//                 len: items.len(),
-//             },
-//             uniques,
-//             _phantom: PhantomData,
-//         }
-//     }
-//     fn expand_group(
-//         &self,
-//         range: &VecRange,
-//         uniques: Vec<()>,
-//     ) -> Vec<BackendPointer<DataStore, VecBackend>> {
-//         (range.start..range.start + range.len)
-//             .zip(uniques)
-//             .map(|(i, u)| BackendPointer::Single {
-//                 index: i,
-//                 unique: u,
-//                 _phantom: PhantomData,
-//             })
-//             .collect()
-//     }
-// }
-
-// impl BackendAccess<SignatureStore, VecBackend> for VecBackend {
-//     fn push_cell(
-//         &mut self,
-//         item: StoreItemCell<SignatureStore, VecBackend>,
-//     ) -> BackendPointer<SignatureStore, VecBackend> {
-//         let index = self.sig_store.len();
-//         self.sig_store.push(item);
-//         BackendPointer::Single {
-//             index,
-//             unique: SignatureUnique,
-//             _phantom: PhantomData,
-//         }
-//     }
-//     fn get_cell(
-//         &self,
-//         pointer: &BackendPointer<SignatureStore, VecBackend>,
-//     ) -> Option<&StoreItemCell<SignatureStore, VecBackend>> {
-//         match pointer {
-//             BackendPointer::Single { index, .. } => self.sig_store.get(*index),
-//             BackendPointer::Group { .. } => None,
-//         }
-//     }
-//     fn group_together(
-//         &mut self,
-//         items: Vec<BackendPointer<SignatureStore, VecBackend>>,
-//     ) -> BackendPointer<SignatureStore, VecBackend> {
-//         let uniques: Vec<SignatureUnique> = items
-//             .iter()
-//             .map(|p| match p {
-//                 BackendPointer::Single { unique, .. } => unique.clone(),
-//                 BackendPointer::Group { .. } => SignatureUnique,
-//             })
-//             .collect();
-//         let start = self.sig_store.len();
-//         for ptr in &items {
-//             self.push_cell(StoreItemCell::BackendPointer(ptr.clone()));
-//         }
-//         BackendPointer::Group {
-//             range: VecRange {
-//                 start,
-//                 len: items.len(),
-//             },
-//             uniques,
-//             _phantom: PhantomData,
-//         }
-//     }
-//     fn expand_group(
-//         &self,
-//         range: &VecRange,
-//         uniques: Vec<SignatureUnique>,
-//     ) -> Vec<BackendPointer<SignatureStore, VecBackend>> {
-//         (range.start..range.start + range.len)
-//             .zip(uniques)
-//             .map(|(i, u)| BackendPointer::Single {
-//                 index: i,
-//                 unique: u,
-//                 _phantom: PhantomData,
-//             })
-//             .collect()
-//     }
-// }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 struct VecSinglePointer<S: StoreTypes> {
@@ -282,11 +122,12 @@ struct VecSinglePointer<S: StoreTypes> {
     unique: S::Unique,
 }
 
-impl <S: StoreTypes>Default for VecSinglePointer<S> {
+impl<S: StoreTypes> Default for VecSinglePointer<S> {
     //! Maybe use educe for this instead?
     fn default() -> Self {
         Self {
-            index: 0, unique: S::Unique::default()
+            index: 0,
+            unique: S::Unique::default(),
         }
     }
 }
@@ -297,17 +138,17 @@ struct VecGroupPointer<S: StoreTypes> {
     uniques: Vec<S::Unique>,
 }
 
-impl <S:StoreTypes>Default for VecGroupPointer<S> {
+impl<S: StoreTypes> Default for VecGroupPointer<S> {
     fn default() -> Self {
         Self {
-            range: VecRange{start: 0, len: 0},
+            range: VecRange { start: 0, len: 0 },
             uniques: vec![],
         }
     }
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
-struct VecTypes();
+#[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
+pub struct VecTypes;
 
 impl BackendTypes for VecTypes {
     type Single<S: StoreTypes> = VecSinglePointer<S>;
@@ -316,18 +157,4 @@ impl BackendTypes for VecTypes {
 
 impl Backend for VecBackend {
     type Types = VecTypes;
-
-    fn page_store_size(&self) -> usize {
-        self.page_store.len()
-    }
-    fn item_store_size(&self) -> usize {
-        self.item_store.len()
-    }
-    fn data_store_size(&self) -> usize {
-        self.data_store.len()
-    }
-    fn sig_store_size(&self) -> usize {
-        self.sig_store.len()
-    }
 }
-
