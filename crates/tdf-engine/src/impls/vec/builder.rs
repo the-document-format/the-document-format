@@ -1,4 +1,4 @@
-use crate::backend::{vec_backend::VecTypes, BackendAccess, BackendPointer, VecBackend};
+use crate::backend::{BackendAccess, BackendPointer, VecBackend, vec_backend::VecTypes};
 use crate::primitives::item::{ItemPrimitive, ItemTypes, ItemUnique};
 use crate::primitives::page::PageTypes;
 use crate::segments::{

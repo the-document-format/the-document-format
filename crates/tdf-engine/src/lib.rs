@@ -131,7 +131,7 @@ mod tests {
     fn test_round_trip_serialization() {
         use crate::backend::VecBackend;
         use crate::builder::{DummyTDFBuilder, TDFBuilder};
-        use crate::impls::{TDFManifest, TdfDocument};
+        use crate::impls::{ManifestRead, TDFManifest, TdfDocument};
         use crate::primitives::item::*;
 
         let doc = DummyTDFBuilder::default()
@@ -183,7 +183,7 @@ mod tests {
         assert_eq!(manifest.pages.page_count(), 2);
 
         let loaded = manifest
-            .load_backend::<VecBackend, _>(&mut cursor)
+            .load_backend::<VecBackend, _>(cursor)
             .expect("load_backend failed");
 
         // Page 0: two items at correct positions.

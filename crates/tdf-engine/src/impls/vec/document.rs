@@ -3,17 +3,18 @@ use std::io::Read;
 use serde::de::DeserializeOwned;
 
 use crate::backend::{
-    vec_backend::VecTypes, Backend, BackendAccess, BackendPointer, StoreItemCell, VecBackend,
+    Backend, BackendAccess, BackendPointer, StoreItemCell, VecBackend, vec_backend::VecTypes,
 };
-use crate::impls::document::{BackedDocument, TDFManifest, TdfDocument};
+use crate::impls::document::{BackedDocument, ManifestRead, TDFManifest, TdfDocument};
 use crate::primitives::item::{ItemPrimitive, ItemTypes, ItemUnique};
 use crate::primitives::page::PageTypes;
 
 use super::utils::read_length_prefixed;
 
-impl TDFManifest<VecTypes> {
-    /// Read header, meta, and pages segments from `reader`.
-    pub fn from_reader<R: Read>(reader: &mut R) -> std::io::Result<Self> {
+impl ManifestRead for TDFManifest<VecTypes> {
+    type BTypes = VecTypes;
+
+    fn from_reader<R: Read>(reader: &mut R) -> std::io::Result<Self> {
         let header = read_length_prefixed(reader)?;
         let meta = read_length_prefixed(reader)?;
         let pages = read_length_prefixed(reader)?;
@@ -24,13 +25,12 @@ impl TDFManifest<VecTypes> {
         })
     }
 
-    /// Consume the manifest and read the backend from `reader`, producing a full document.
-    pub fn load_backend<B, R>(self, reader: &mut R) -> std::io::Result<BackedDocument<B>>
+    fn load_backend<B, R>(self, mut reader: R) -> std::io::Result<BackedDocument<B>>
     where
         B: Backend<Types = VecTypes> + DeserializeOwned,
         R: Read,
     {
-        let backend = read_length_prefixed(reader)?;
+        let backend = read_length_prefixed(&mut reader)?;
         Ok(BackedDocument {
             manifest: self,
             backend,
