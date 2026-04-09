@@ -27,7 +27,7 @@ pub type SignatureStoreImpl = Vec<StoreItemCell<SignatureTypes, VecTypes>>;
 pub type VecInnerStoreImpl<Q: StoreTypes> = Vec<StoreItemCell<Q, VecTypes>>;
 
 /// The simplest possible backend: four `Vec`s, one per store.
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Serialize, Deserialize)]
 pub struct VecBackend {
     page_store: PageStoreImpl,
     item_store: ItemStoreImpl,
