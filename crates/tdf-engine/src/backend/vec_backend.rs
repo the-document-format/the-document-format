@@ -245,4 +245,9 @@ mod tests {
 
 impl Backend for VecBackend {
     type Types = VecTypes;
+
+    type PageStore = PageStoreImpl;
+    type ItemStore = ItemStoreImpl;
+    type DataStore = DataStoreImpl;
+    type SigStore = SignatureStoreImpl;
 }

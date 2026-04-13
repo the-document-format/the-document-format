@@ -63,26 +63,22 @@ pub trait Store<B: Backend> {
         B: BackendAccess<Self::Types, B>;
 }
 
+pub type StoreItems<S: StoreTypes> = Vec<(<S as StoreTypes>::Primitive, <S as StoreTypes>::Unique)>;
+
 /// Higher-level utilities blanket-implemented for all `Store<B>`.
 pub trait StoreExt<B: Backend>: Store<B> {
     fn iter_rec(
         &self,
         pointer: &BackendPointer<Self::Types, B::Types>,
         backend: &B,
-    ) -> Vec<(
-        <Self::Types as StoreTypes>::Primitive,
-        <Self::Types as StoreTypes>::Unique,
-    )>
+    ) -> StoreItems<Self::Types>
     where
         B: BackendAccess<Self::Types, B>;
     fn iter_range_rec(
         &self,
         pointer: &BackendPointer<Self::Types, B::Types>,
         backend: &B,
-    ) -> Vec<(
-        <Self::Types as StoreTypes>::Primitive,
-        <Self::Types as StoreTypes>::Unique,
-    )>
+    ) -> StoreItems<Self::Types>
     where
         B: BackendAccess<Self::Types, B>;
     fn checksum(&self, backend: &B) -> crate::misc::Hash;

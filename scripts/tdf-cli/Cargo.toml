@@ -1,0 +1,12 @@
+[[bin]]
+name = "tdf-cli"
+path = "src/main.rs"
+
+[dependencies]
+tdf-engine = {path = "../../crates/tdf-engine"}
+clap = {version = "4", features = ["derive"]}
+
+[package]
+name = "tdf-cli"
+version = "0.0.0"
+edition = "2021"

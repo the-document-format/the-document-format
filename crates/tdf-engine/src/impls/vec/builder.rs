@@ -1,4 +1,9 @@
-use crate::backend::{BackendAccess, BackendPointer, VecBackend, vec_backend::VecTypes};
+use crate::backend::{
+    BackendAccess, BackendPointer, VecBackend,
+    vec_backend::{VecSinglePointer, VecTypes},
+};
+use crate::impls::document::{BackedDocument, TDFManifest};
+use crate::primitives::data::{DataPrimitive, DataStorePointer, DataTypes};
 use crate::primitives::item::{ItemPrimitive, ItemTypes, ItemUnique};
 use crate::primitives::page::PageTypes;
 use crate::segments::{
@@ -6,8 +11,6 @@ use crate::segments::{
     meta::MetaSegment,
     pages::{PageEntry, PageTags, PagesSegment},
 };
-
-use crate::impls::document::{BackedDocument, TDFManifest};
 
 pub trait TDFBuilder: Sized {
     type Output;
@@ -21,12 +24,21 @@ pub trait TDFBuilder: Sized {
 #[derive(Default)]
 pub struct DummyTDFBuilder {
     title: Option<String>,
+    staged_data: Vec<DataPrimitive>,
     staged_pages: Vec<Vec<(ItemPrimitive<VecTypes>, ItemUnique)>>,
 }
 
 impl DummyTDFBuilder {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    /// Registers a data item and returns a pointer to it for use in `ItemPrimitive::Image` etc.
+    /// Data items are pushed to the backend before pages, so indices are stable.
+    pub fn stage_data(&mut self, data: DataPrimitive) -> DataStorePointer<VecTypes> {
+        let index = self.staged_data.len();
+        self.staged_data.push(data);
+        BackendPointer::Single(VecSinglePointer { index, unique: () })
     }
 }
 
@@ -46,6 +58,10 @@ impl TDFBuilder for DummyTDFBuilder {
     fn build(self) -> BackedDocument<VecBackend> {
         let mut backend = VecBackend::new();
         let mut pages_segment = PagesSegment::new();
+
+        for data in self.staged_data {
+            <VecBackend as BackendAccess<DataTypes, VecBackend>>::push_cell(&mut backend, data, ());
+        }
 
         for page_items in self.staged_pages {
             let item_ptrs: Vec<BackendPointer<ItemTypes<VecTypes>, VecTypes>> = page_items

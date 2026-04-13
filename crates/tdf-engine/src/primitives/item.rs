@@ -1,8 +1,4 @@
-use crate::{
-    backend::{Backend, BackendPointer, BackendTypes},
-    primitives::data::{DataStorePointer, DataTypes},
-    store::traits::StoreTypes,
-};
+use crate::{backend::BackendTypes, primitives::data::DataStorePointer, store::traits::StoreTypes};
 use serde::{Deserialize, Serialize};
 
 /// Everything that can appear on a page.

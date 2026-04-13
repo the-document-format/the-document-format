@@ -1,11 +1,13 @@
-use std::io::Read;
+use std::io::{Read, Write};
 
 use serde::de::DeserializeOwned;
 
 use crate::backend::{
     Backend, BackendAccess, BackendPointer, StoreItemCell, VecBackend, vec_backend::VecTypes,
 };
-use crate::impls::document::{BackedDocument, ManifestRead, TDFManifest, TdfDocument};
+use crate::impls::document::{
+    BackedDocument, DocumentWrite, ManifestRead, TDFManifest, TdfDocument,
+};
 use crate::primitives::item::{ItemPrimitive, ItemTypes, ItemUnique};
 use crate::primitives::page::PageTypes;
 
@@ -39,6 +41,12 @@ impl ManifestRead for TDFManifest<VecTypes> {
 }
 
 impl TdfDocument for BackedDocument<VecBackend> {
+    type B = VecBackend;
+
+    fn backend(&self) -> &VecBackend {
+        &self.backend
+    }
+
     fn manifest(&self) -> &TDFManifest<VecTypes> {
         &self.manifest
     }
@@ -93,5 +101,15 @@ impl TdfDocument for BackedDocument<VecBackend> {
             .collect();
 
         Box::new(items.into_iter())
+    }
+}
+
+impl DocumentWrite for BackedDocument<VecBackend> {
+    fn to_writer<W: Write>(&self, writer: &mut W) -> std::io::Result<()> {
+        use super::utils::write_length_prefixed;
+        write_length_prefixed(writer, &self.manifest.header)?;
+        write_length_prefixed(writer, &self.manifest.meta)?;
+        write_length_prefixed(writer, &self.manifest.pages)?;
+        write_length_prefixed(writer, &self.backend)
     }
 }

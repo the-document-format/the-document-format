@@ -159,6 +159,17 @@ pub trait BackendTypes:
 }
 
 /// Physical storage for all four TDF stores.
-pub trait Backend: Sized {
+pub trait Backend:
+    Sized
+    + GetStore<Self::PageStore>
+    + GetStore<Self::ItemStore>
+    + GetStore<Self::DataStore>
+    + GetStore<Self::SigStore>
+{
     type Types: BackendTypes;
+
+    type PageStore;
+    type ItemStore;
+    type DataStore;
+    type SigStore;
 }

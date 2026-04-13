@@ -2,6 +2,7 @@
 //!
 //! Entry points: [`impls::TdfDocument`] for reading, [`builder::TDFBuilder`] for building.
 
+#![allow(incomplete_features)]
 #![feature(associated_type_defaults)]
 #![feature(lazy_type_alias)]
 
@@ -16,6 +17,8 @@ pub mod impls;
 
 #[cfg(test)]
 mod tests {
+    use std::io::Cursor;
+
     #[test]
     fn test_iter_page_items() {
         use crate::builder::{DummyTDFBuilder, TDFBuilder};
@@ -131,7 +134,7 @@ mod tests {
     fn test_round_trip_serialization() {
         use crate::backend::VecBackend;
         use crate::builder::{DummyTDFBuilder, TDFBuilder};
-        use crate::impls::{ManifestRead, TDFManifest, TdfDocument};
+        use crate::impls::{DocumentWrite, ManifestRead, TDFManifest, TdfDocument};
         use crate::primitives::item::*;
 
         let doc = DummyTDFBuilder::default()
@@ -174,7 +177,7 @@ mod tests {
         doc.to_writer(&mut buf).expect("to_writer failed");
 
         // Deserialize: load manifest only, inspect, then load backend.
-        let mut cursor = std::io::Cursor::new(&buf);
+        let mut cursor = Cursor::new(&buf);
         let manifest = TDFManifest::from_reader(&mut cursor).expect("from_reader failed");
         assert_eq!(
             manifest.meta.document_title.as_deref(),

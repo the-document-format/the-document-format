@@ -15,7 +15,9 @@ impl<B: BackendTypes> crate::store::traits::PrimitiveType for ItemPointer<B> {}
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct PageTypes<B: BackendTypes>(std::marker::PhantomData<B>);
 
+pub type PageUnique = ();
+
 impl<B: BackendTypes> StoreTypes for PageTypes<B> {
     type Primitive = ItemPointer<B>;
-    type Unique = ();
+    type Unique = PageUnique;
 }
