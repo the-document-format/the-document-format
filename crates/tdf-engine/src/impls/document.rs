@@ -58,6 +58,7 @@ where
         }
     }
 
+    #[allow(clippy::type_complexity)]
     fn iter_page_items(
         &self,
         page_number: usize,

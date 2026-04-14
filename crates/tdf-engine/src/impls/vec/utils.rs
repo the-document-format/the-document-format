@@ -1,4 +1,4 @@
-use serde::{Serialize, de::DeserializeOwned};
+use serde::{de::DeserializeOwned, Serialize};
 use std::io::{Read, Write};
 
 /// Wire format: ASCII decimal byte-count immediately followed by JSON bytes, no separator.

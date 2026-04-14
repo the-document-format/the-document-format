@@ -1,6 +1,6 @@
 //! Core store trait definitions.
 
-use crate::backend::{Backend, BackendAccess, BackendPointer, StoreItemCell, UniqueReduce};
+use crate::backend::UniqueReduce;
 use serde::{Deserialize, Serialize};
 use std::{fmt::Debug, hash::Hash};
 
