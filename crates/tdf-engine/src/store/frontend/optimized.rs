@@ -1,7 +1,8 @@
 //! OptimizedStore: interns identical primitives so they share a single copy in storage.
 
 use crate::backend::{Backend, BackendAccess, BackendPointer, StoreItemCell};
-use crate::store::traits::{Store, StoreTypes};
+use crate::store::frontend::Frontend;
+use crate::store::traits::StoreTypes;
 use std::collections::HashMap;
 
 /// Deduplicates identical primitives.
@@ -28,7 +29,7 @@ impl<S: StoreTypes, B: Backend> Default for OptimizedFrontend<S, B> {
     }
 }
 
-impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Store<B> for OptimizedFrontend<S, B> {
+impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Frontend<B> for OptimizedFrontend<S, B> {
     type Types = S;
     fn push(
         &mut self,

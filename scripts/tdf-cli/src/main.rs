@@ -44,8 +44,11 @@ fn squid_rgb_bytes() -> Vec<u8> {
         .iter()
         .flat_map(|row| {
             row.iter().flat_map(|&px| {
-                let v = if px == 1 { 255u8 } else { 0u8 };
-                [v, v, v]
+                if px == 1 {
+                    [148u8, 103u8, 189u8] // purple
+                } else {
+                    [32u8, 178u8, 170u8] // teal background
+                }
             })
         })
         .collect()
@@ -137,9 +140,8 @@ fn cmd_write(path: &std::path::Path) {
 
 fn cmd_read(path: &std::path::Path) {
     let mut file = File::open(path).expect("failed to open file");
-    let manifest =
-        TDFManifest::<tdf_engine::backend::vec_backend::VecTypes>::from_reader(&mut file)
-            .expect("failed to read manifest");
+    let manifest = TDFManifest::<tdf_engine::impls::vec::backend::VecTypes>::from_reader(&mut file)
+        .expect("failed to read manifest");
 
     println!("title: {:?}", manifest.meta.document_title);
     println!("pages: {}", manifest.pages.page_count());
@@ -161,11 +163,19 @@ fn cmd_read(path: &std::path::Path) {
                     match doc.fetch_data_item(&i.data) {
                         Some(DataPrimitive::ImageData(data)) => {
                             let w = i.width as usize;
-                            for row in data.bytes.chunks(w * 3) {
+                            let rows: Vec<&[u8]> = data.bytes.chunks(w * 3).collect();
+                            for pair in rows.chunks(2) {
+                                let top = pair[0];
+                                let bot = if pair.len() > 1 { pair[1] } else { top };
                                 print!("  ");
-                                for pixel in row.chunks(3) {
-                                    let filled = pixel[0] > 127;
-                                    print!("{}", if filled { "█" } else { " " });
+                                for x in 0..w {
+                                    let t = &top[x * 3..x * 3 + 3];
+                                    let b = &bot[x * 3..x * 3 + 3];
+                                    // bg = top pixel, fg = bottom pixel, ▄ fills lower half
+                                    print!(
+                                        "\x1b[48;2;{};{};{}m\x1b[38;2;{};{};{}m▄\x1b[0m",
+                                        t[0], t[1], t[2], b[0], b[1], b[2]
+                                    );
                                 }
                                 println!();
                             }

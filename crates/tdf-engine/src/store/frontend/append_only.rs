@@ -1,7 +1,8 @@
 //! AppendOnlyStore: insertion order is preserved and meaningful.
 
 use crate::backend::{Backend, BackendAccess, BackendPointer, StoreItemCell};
-use crate::store::traits::{Store, StoreTypes};
+use crate::store::frontend::Frontend;
+use crate::store::traits::StoreTypes;
 
 /// Enforces append-only insertion order.
 #[derive(Debug)]
@@ -25,7 +26,7 @@ impl<S: StoreTypes, B: Backend> Default for AppendOnlyFrontend<S, B> {
     }
 }
 
-impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Store<B> for AppendOnlyFrontend<S, B> {
+impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Frontend<B> for AppendOnlyFrontend<S, B> {
     type Types = S;
 
     fn push(

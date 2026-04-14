@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::backend::{
-    Backend, BackendAccess, BackendPointer, BackendTypes, GetStore, StoreItemCell,
+    Backend, BackendAccess, BackendPointer, BackendTypes, GetStore, HasUnique, StoreItemCell,
 };
 use crate::primitives::data::DataTypes;
 use crate::primitives::item::ItemTypes;
@@ -150,6 +150,12 @@ pub struct VecSinglePointer<S: StoreTypes> {
     pub unique: S::Unique,
 }
 
+impl<S: StoreTypes> HasUnique<S::Unique> for VecSinglePointer<S> {
+    fn unique(&self) -> S::Unique {
+        self.unique.clone()
+    }
+}
+
 impl<S: StoreTypes> Default for VecSinglePointer<S> {
     //! Maybe use educe for this instead?
     fn default() -> Self {
@@ -181,6 +187,15 @@ pub struct VecTypes;
 impl BackendTypes for VecTypes {
     type Single<S: StoreTypes> = VecSinglePointer<S>;
     type Group<S: StoreTypes> = VecGroupPointer<S>;
+}
+
+impl Backend for VecBackend {
+    type Types = VecTypes;
+
+    type PageStore = PageStoreImpl;
+    type ItemStore = ItemStoreImpl;
+    type DataStore = DataStoreImpl;
+    type SigStore = SignatureStoreImpl;
 }
 
 #[cfg(test)]
@@ -241,13 +256,4 @@ mod tests {
             _ => panic!("expected a Group pointer"),
         }
     }
-}
-
-impl Backend for VecBackend {
-    type Types = VecTypes;
-
-    type PageStore = PageStoreImpl;
-    type ItemStore = ItemStoreImpl;
-    type DataStore = DataStoreImpl;
-    type SigStore = SignatureStoreImpl;
 }

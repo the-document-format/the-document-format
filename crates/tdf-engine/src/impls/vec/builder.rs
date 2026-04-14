@@ -1,15 +1,13 @@
-use crate::backend::{
-    BackendAccess, BackendPointer, VecBackend,
-    vec_backend::{VecSinglePointer, VecTypes},
-};
+use crate::backend::{BackendAccess, BackendPointer};
 use crate::impls::document::{BackedDocument, TDFManifest};
+use crate::impls::vec::backend::{VecBackend, VecSinglePointer, VecTypes};
 use crate::primitives::data::{DataPrimitive, DataStorePointer, DataTypes};
 use crate::primitives::item::{ItemPrimitive, ItemTypes, ItemUnique};
-use crate::primitives::page::PageTypes;
+use crate::primitives::page::{PageStorePrimitive, PageTags, PageTypes};
 use crate::segments::{
     header::{HeaderSegment, SegmentOffsets},
     meta::MetaSegment,
-    pages::{PageEntry, PageTags, PagesSegment},
+    pages::PagesSegment,
 };
 
 pub trait TDFBuilder: Sized {
@@ -84,14 +82,14 @@ impl TDFBuilder for DummyTDFBuilder {
             let page_ptr =
                 <VecBackend as BackendAccess<PageTypes<VecTypes>, VecBackend>>::push_cell(
                     &mut backend,
-                    item_group,
+                    PageStorePrimitive {
+                        tags: PageTags::default(),
+                        items: item_group,
+                    },
                     (),
                 );
 
-            pages_segment.pages.push(PageEntry {
-                tags: PageTags::default(),
-                page_ref: page_ptr,
-            });
+            pages_segment.pages.push(page_ptr);
         }
 
         let header = HeaderSegment::new(0, SegmentOffsets::new(0, 0, 0));

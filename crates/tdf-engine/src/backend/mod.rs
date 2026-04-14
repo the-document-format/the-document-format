@@ -4,8 +4,7 @@
 //! [`BackendView`] is the typed, offset-aware accessor that stores hold to communicate with
 //! the backend without knowing about other stores' regions.
 
-pub mod vec_backend;
-pub use vec_backend::{VecBackend, VecRange};
+pub use crate::impls::vec::backend::{VecBackend, VecRange};
 
 use serde::{Deserialize, Serialize};
 use std::hash::Hash;
@@ -15,6 +14,11 @@ use crate::store::traits::StoreTypes;
 /// Trait for combining unique data as a pointer chain is traversed.
 pub trait UniqueReduce: Sized + Clone {
     fn reduce(self, other: Self) -> Self;
+}
+
+/// Trait for extracting the unique value from a single pointer.
+pub trait HasUnique<U> {
+    fn unique(&self) -> U;
 }
 
 impl UniqueReduce for () {
@@ -49,51 +53,11 @@ impl<S: StoreTypes, B: BackendTypes> BackendPointer<S, B> {
 }
 
 /// What you get back when reading from any store.
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 #[serde(bound = "S: StoreTypes, B: BackendTypes")]
 pub enum StoreItemCell<S: StoreTypes, B: BackendTypes> {
     BackendPointer(BackendPointer<S, B>),
     StorePrimitive(S::Primitive),
-}
-
-impl<S: StoreTypes, B: BackendTypes> std::fmt::Debug for StoreItemCell<S, B>
-where
-    BackendPointer<S, B>: std::fmt::Debug,
-    S::Primitive: std::fmt::Debug,
-{
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            StoreItemCell::BackendPointer(p) => f.debug_tuple("BackendPointer").field(p).finish(),
-            StoreItemCell::StorePrimitive(p) => f.debug_tuple("StorePrimitive").field(p).finish(),
-        }
-    }
-}
-
-impl<S: StoreTypes, B: BackendTypes> Clone for StoreItemCell<S, B>
-where
-    BackendPointer<S, B>: Clone,
-    S::Primitive: Clone,
-{
-    fn clone(&self) -> Self {
-        match self {
-            StoreItemCell::BackendPointer(p) => StoreItemCell::BackendPointer(p.clone()),
-            StoreItemCell::StorePrimitive(p) => StoreItemCell::StorePrimitive(p.clone()),
-        }
-    }
-}
-
-impl<S: StoreTypes, B: BackendTypes> PartialEq for StoreItemCell<S, B>
-where
-    BackendPointer<S, B>: PartialEq,
-    S::Primitive: PartialEq,
-{
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (StoreItemCell::BackendPointer(a), StoreItemCell::BackendPointer(b)) => a == b,
-            (StoreItemCell::StorePrimitive(a), StoreItemCell::StorePrimitive(b)) => a == b,
-            _ => false,
-        }
-    }
 }
 
 impl<S: StoreTypes, B: BackendTypes> Eq for StoreItemCell<S, B>
@@ -129,6 +93,35 @@ pub trait BackendAccess<S: StoreTypes, B: Backend> {
         &self,
         range: &<B::Types as BackendTypes>::Group<S>,
     ) -> Vec<BackendPointer<S, B::Types>>;
+
+    /// Recursively collect all `(Primitive, Unique)` pairs reachable from `pointer`.
+    fn iter_rec(&self, pointer: &BackendPointer<S, B::Types>) -> Vec<(S::Primitive, S::Unique)>
+    where
+        <B::Types as BackendTypes>::Single<S>: HasUnique<S::Unique>,
+    {
+        match pointer {
+            BackendPointer::Single(s) => {
+                let unique = s.unique();
+                match self.get_cells(pointer) {
+                    Some(cells) => cells
+                        .into_iter()
+                        .filter_map(|cell| match cell {
+                            StoreItemCell::StorePrimitive(p) => Some((p.clone(), unique.clone())),
+                            StoreItemCell::BackendPointer(inner) => {
+                                self.iter_rec(inner).into_iter().next()
+                            }
+                        })
+                        .collect(),
+                    None => vec![],
+                }
+            }
+            BackendPointer::Group(g) => self
+                .expand_group(g)
+                .into_iter()
+                .flat_map(|ptr| self.iter_rec(&ptr))
+                .collect(),
+        }
+    }
 }
 
 pub trait GetStore<Q> {
@@ -155,7 +148,8 @@ pub trait BackendTypes:
         + PartialEq
         + Eq
         + Hash
-        + Default;
+        + Default
+        + HasUnique<S::Unique>;
 }
 
 /// Physical storage for all four TDF stores.

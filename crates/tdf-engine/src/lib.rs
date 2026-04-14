@@ -22,7 +22,7 @@ mod tests {
     #[test]
     fn test_iter_page_items() {
         use crate::builder::{DummyTDFBuilder, TDFBuilder};
-        use crate::impls::TdfDocument;
+        use crate::impls::document::TdfDocumentExt;
         use crate::primitives::item::*;
 
         let reader = DummyTDFBuilder::default()
@@ -79,7 +79,7 @@ mod tests {
     #[test]
     fn test_iter_page_items_primitives_and_positions() {
         use crate::builder::{DummyTDFBuilder, TDFBuilder};
-        use crate::impls::TdfDocument;
+        use crate::impls::document::TdfDocumentExt;
         use crate::primitives::item::*;
 
         let reader = DummyTDFBuilder::default()
@@ -134,7 +134,8 @@ mod tests {
     fn test_round_trip_serialization() {
         use crate::backend::VecBackend;
         use crate::builder::{DummyTDFBuilder, TDFBuilder};
-        use crate::impls::{DocumentWrite, ManifestRead, TDFManifest, TdfDocument};
+        use crate::impls::document::TdfDocumentExt;
+        use crate::impls::{DocumentWrite, ManifestRead, TDFManifest};
         use crate::primitives::item::*;
 
         let doc = DummyTDFBuilder::default()
