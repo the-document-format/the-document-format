@@ -2,11 +2,13 @@ use std::io::{Read, Write};
 
 use serde::de::DeserializeOwned;
 
-use crate::backend::{Backend, BackendAccess, BackendTypes, HasUnique, StoreItemCell};
-use crate::primitives::data::{DataPrimitive, DataStorePointer, DataTypes};
-use crate::primitives::item::{ItemPrimitive, ItemTypes, ItemUnique};
-use crate::primitives::page::{PageStorePrimitive, PageTypes};
+use crate::backend::{Backend, BackendTypes, CacheHints, StoreItemCell};
+use crate::primitives::data::{DataPrimitive, DataStorePointer};
+use crate::primitives::item::{ItemPrimitive, ItemUnique};
+use crate::primitives::page::PageStorePrimitive;
 use crate::segments::{header::HeaderSegment, meta::MetaSegment, pages::PagesSegment};
+use crate::store::frontend::{Frontend, FrontendExt};
+use crate::store::{DataStore, ItemStore, PageStore, SignatureStore};
 
 #[derive(Debug)]
 pub struct TDFManifest<B: BackendTypes> {
@@ -18,6 +20,20 @@ pub struct TDFManifest<B: BackendTypes> {
 pub struct BackedDocument<B: Backend> {
     pub manifest: TDFManifest<B::Types>,
     pub backend: B,
+    pub page_frontend: PageStore<B>,
+    pub item_frontend: ItemStore<B>,
+    pub data_frontend: DataStore<B>,
+    pub sig_frontend: SignatureStore<B>,
+}
+
+/// Bundle of references to all four frontends + mutable backend access.
+/// Enables direct frontend use without borrow conflicts.
+pub struct StoreAccess<'a, B: Backend> {
+    pub backend: &'a mut B,
+    pub pages_store: &'a PageStore<B>,
+    pub item_store: &'a ItemStore<B>,
+    pub data_store: &'a DataStore<B>,
+    pub signature_store: &'a SignatureStore<B>,
 }
 
 pub trait DocumentWrite {
@@ -38,64 +54,58 @@ pub trait ManifestRead: Sized {
 pub trait TdfDocument {
     type B: Backend;
 
-    fn backend(&self) -> &Self::B;
     fn manifest(&self) -> &TDFManifest<<Self::B as Backend>::Types>;
+    fn stores(&mut self) -> StoreAccess<'_, Self::B>;
 }
 
-pub trait TdfDocumentExt: TdfDocument
-where
-    Self::B: BackendAccess<DataTypes, Self::B>,
-{
+pub trait TdfDocumentExt: TdfDocument {
     fn fetch_data_item(
-        &self,
+        &mut self,
         ptr: &DataStorePointer<<Self::B as Backend>::Types>,
     ) -> Option<DataPrimitive> {
-        let cells = <Self::B as BackendAccess<DataTypes, Self::B>>::get_cells(self.backend(), ptr)?;
-
-        match cells.into_iter().next()? {
-            StoreItemCell::StorePrimitive(p) => Some(p.clone()),
+        let stores = self.stores();
+        let cells = stores
+            .data_store
+            .get(ptr, stores.backend, CacheHints::Cache)
+            .ok()?;
+        let cell = cells.into_iter().next()?;
+        match cell.into_owned() {
+            StoreItemCell::StorePrimitive(p) => Some(p),
             _ => None,
         }
     }
 
     fn iter_page_items(
-        &self,
+        &mut self,
         page_number: usize,
-    ) -> Box<dyn Iterator<Item = (ItemPrimitive<<Self::B as Backend>::Types>, ItemUnique)> + '_>
-    where
-        Self::B: BackendAccess<PageTypes<<Self::B as Backend>::Types>, Self::B>,
-        Self::B: BackendAccess<ItemTypes<<Self::B as Backend>::Types>, Self::B>,
-        <<Self::B as Backend>::Types as BackendTypes>::Single<
-            ItemTypes<<Self::B as Backend>::Types>,
-        >: HasUnique<ItemUnique>,
-    {
+        cache_hints: CacheHints,
+    ) -> Vec<(ItemPrimitive<<Self::B as Backend>::Types>, ItemUnique)> {
         let page_ptr = match self.manifest().pages.get_page(page_number) {
-            Some(p) => p,
-            None => return Box::new(std::iter::empty()),
+            Some(p) => p.clone(),
+            None => return vec![],
         };
 
-        let cells = match <Self::B as BackendAccess<
-            PageTypes<<Self::B as Backend>::Types>,
-            Self::B,
-        >>::get_cells(self.backend(), page_ptr)
+        let stores = self.stores();
+        let cells = match stores
+            .pages_store
+            .get(&page_ptr, stores.backend, cache_hints)
         {
-            Some(c) => c,
-            None => return Box::new(std::iter::empty()),
+            Ok(c) => c,
+            Err(_) => return vec![],
         };
 
         let page_prim: PageStorePrimitive<_> = match cells.into_iter().next() {
-            Some(StoreItemCell::StorePrimitive(p)) => p.clone(),
-            _ => return Box::new(std::iter::empty()),
+            Some(cow) => match cow.into_owned() {
+                StoreItemCell::StorePrimitive(p) => p,
+                _ => return vec![],
+            },
+            _ => return vec![],
         };
 
-        let items =
-            <Self::B as BackendAccess<ItemTypes<<Self::B as Backend>::Types>, Self::B>>::iter_rec(
-                self.backend(),
-                &page_prim.items,
-            );
-
-        Box::new(items.into_iter())
+        stores
+            .item_store
+            .iter_rec(&page_prim.items, stores.backend, cache_hints)
     }
 }
 
-impl<T: TdfDocument> TdfDocumentExt for T where T::B: BackendAccess<DataTypes, T::B> {}
+impl<T: TdfDocument> TdfDocumentExt for T {}

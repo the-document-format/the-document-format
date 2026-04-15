@@ -1,9 +1,12 @@
 //! OptimizedStore: interns identical primitives so they share a single copy in storage.
 
-use crate::backend::{Backend, BackendAccess, BackendPointer, StoreItemCell};
+use std::borrow::Cow;
+use std::collections::HashMap;
+
+use crate::backend::{Backend, BackendAccess, BackendPointer, CacheHints, StoreItemCell};
+use crate::impls::binary::error::TdfBinaryError;
 use crate::store::frontend::Frontend;
 use crate::store::traits::StoreTypes;
-use std::collections::HashMap;
 
 /// Deduplicates identical primitives.
 #[derive(Debug)]
@@ -14,7 +17,7 @@ pub struct OptimizedFrontend<S: StoreTypes, B: Backend> {
 }
 
 impl<S: StoreTypes, B: Backend> OptimizedFrontend<S, B> {
-    pub fn new(offset: usize) -> Self {
+    pub fn new(_offset: usize) -> Self {
         Self {
             dedup: HashMap::new(),
             _s: std::marker::PhantomData,
@@ -31,6 +34,7 @@ impl<S: StoreTypes, B: Backend> Default for OptimizedFrontend<S, B> {
 
 impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Frontend<B> for OptimizedFrontend<S, B> {
     type Types = S;
+
     fn push(
         &mut self,
         item: S::Primitive,
@@ -39,18 +43,20 @@ impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Frontend<B> for OptimizedF
     ) -> BackendPointer<S, B::Types> {
         backend.push_cell(item, unique)
     }
+
     fn get<'a>(
         &self,
         pointer: &BackendPointer<S, B::Types>,
-        backend: &'a B,
-    ) -> Option<&'a StoreItemCell<S, B::Types>> {
-        backend
-            .get_cells(pointer)
-            .and_then(|cells| cells.into_iter().next())
+        backend: &'a mut B,
+        cache_hints: CacheHints,
+    ) -> Result<Vec<Cow<'a, StoreItemCell<S, B::Types>>>, TdfBinaryError> {
+        backend.get_cells(pointer, cache_hints)
     }
+
     fn size(&self, _backend: &B) -> usize {
         todo!()
     }
+
     fn iter<'a>(
         &self,
         _backend: &'a B,

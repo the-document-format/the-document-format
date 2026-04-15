@@ -1,27 +1,8 @@
-# Segments
+# Manifest
 
-A TDF file is divided into three contiguous segments: the **header**, **meta**, and **pages**. Each segment has a fixed role and can be located independently once the header is read.
+The **manifest** is the structured portion of a TDF file that describes the document independently of its backend storage. In code it is represented as `TDFManifest<B>`, which is generic over the backend type `B`. It contains two segments: **meta** and **pages**.
 
-```
-┌──────────┬──────────┬──────────┐
-│  Header  │   Meta   │  Pages   │
-└──────────┴──────────┴──────────┘
-```
-
-## Header
-
-The header is **fixed-size** and is always read first. Because its size is known ahead of time, the reader can parse it in a single read without any seeking. It contains:
-
-| Field | Description |
-|-------|-------------|
-| Magic bytes | Identifies the file as TDF |
-| Version | Format version number |
-| File length | Total byte length of the file |
-| Compression | Compression scheme used for the other segments (if any) |
-| Segment offsets | Byte offsets to the start of the meta and pages segments |
-| Checksum | Rolling hash over all store contents (see [Store](./STORE.md) for how checksums are computed) |
-
-The segment offsets are what make random access possible — once you have the header, you can jump directly to any segment without scanning through the file.
+Every TDF file also begins with a **header** that precedes the manifest. The header is backend-specific: its layout, field types, and byte size depend on the concrete backend in use. The binary backend header is defined in [docs/backends/BIN.md](./backends/BIN.md). The header's job is to carry the byte offsets needed to locate the manifest segments and the backend stores within the file.
 
 ## Meta
 

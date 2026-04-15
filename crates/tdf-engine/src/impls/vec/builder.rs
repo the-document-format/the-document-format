@@ -1,14 +1,16 @@
 use crate::backend::{BackendAccess, BackendPointer};
 use crate::impls::document::{BackedDocument, TDFManifest};
 use crate::impls::vec::backend::{VecBackend, VecSinglePointer, VecTypes};
-use crate::primitives::data::{DataPrimitive, DataStorePointer, DataTypes};
+use crate::primitives::data::{DataPrimitive, DataStorePointer};
 use crate::primitives::item::{ItemPrimitive, ItemTypes, ItemUnique};
-use crate::primitives::page::{PageStorePrimitive, PageTags, PageTypes};
+use crate::primitives::page::{PageStorePrimitive, PageTags};
 use crate::segments::{
     header::{HeaderSegment, SegmentOffsets},
     meta::MetaSegment,
     pages::PagesSegment,
 };
+use crate::store::frontend::Frontend;
+use crate::store::{DataStore, ItemStore, PageStore, SignatureStore};
 
 pub trait TDFBuilder: Sized {
     type Output;
@@ -55,39 +57,37 @@ impl TDFBuilder for DummyTDFBuilder {
 
     fn build(self) -> BackedDocument<VecBackend> {
         let mut backend = VecBackend::new();
+        let mut data_frontend = DataStore::<VecBackend>::default();
+        let mut item_frontend = ItemStore::<VecBackend>::default();
+        let mut page_frontend = PageStore::<VecBackend>::default();
+        let sig_frontend = SignatureStore::<VecBackend>::default();
         let mut pages_segment = PagesSegment::new();
 
         for data in self.staged_data {
-            <VecBackend as BackendAccess<DataTypes, VecBackend>>::push_cell(&mut backend, data, ());
+            data_frontend.push(data, (), &mut backend);
         }
 
         for page_items in self.staged_pages {
             let item_ptrs: Vec<BackendPointer<ItemTypes<VecTypes>, VecTypes>> = page_items
                 .into_iter()
-                .map(|(prim, uniq)| {
-                    <VecBackend as BackendAccess<ItemTypes<VecTypes>, VecBackend>>::push_cell(
-                        &mut backend,
-                        prim,
-                        uniq,
-                    )
-                })
+                .map(|(prim, uniq)| item_frontend.push(prim, uniq, &mut backend))
                 .collect();
 
+            // group_together is a backend-level operation (no Frontend equivalent yet)
             let item_group =
                 <VecBackend as BackendAccess<ItemTypes<VecTypes>, VecBackend>>::group_together(
                     &mut backend,
                     item_ptrs,
                 );
 
-            let page_ptr =
-                <VecBackend as BackendAccess<PageTypes<VecTypes>, VecBackend>>::push_cell(
-                    &mut backend,
-                    PageStorePrimitive {
-                        tags: PageTags::default(),
-                        items: item_group,
-                    },
-                    (),
-                );
+            let page_ptr = page_frontend.push(
+                PageStorePrimitive {
+                    tags: PageTags::default(),
+                    items: item_group,
+                },
+                (),
+                &mut backend,
+            );
 
             pages_segment.pages.push(page_ptr);
         }
@@ -105,6 +105,10 @@ impl TDFBuilder for DummyTDFBuilder {
                 pages: pages_segment,
             },
             backend,
+            page_frontend,
+            item_frontend,
+            data_frontend,
+            sig_frontend,
         }
     }
 }

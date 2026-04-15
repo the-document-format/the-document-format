@@ -6,26 +6,45 @@
 
 pub use crate::impls::vec::backend::{VecBackend, VecRange};
 
-use serde::{Deserialize, Serialize};
+use std::borrow::Cow;
 use std::hash::Hash;
 
-use crate::store::traits::StoreTypes;
+use serde::{Deserialize, Serialize};
+
+use crate::impls::binary::error::TdfBinaryError;
+use crate::store::traits::{StoreTypes, UniqueType};
+
+/// Hint for whether `get_cells` should use the cache.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CacheHints {
+    Cache,
+    NoCache,
+}
 
 /// Trait for combining unique data as a pointer chain is traversed.
 pub trait UniqueReduce: Sized + Clone {
     fn reduce(self, other: Self) -> Self;
 }
 
-/// Trait for extracting the unique value from a single pointer.
-pub trait HasUnique<U> {
+/// Trait for a single-item pointer type. Carries one unique value.
+pub trait SinglePointerType<U>:
+    Serialize + for<'de> Deserialize<'de> + std::fmt::Debug + Clone + PartialEq + Eq + Hash + Default
+{
     fn unique(&self) -> U;
+}
+
+/// Trait for a group pointer type. Carries one unique value per item.
+pub trait GroupPointerType<U>:
+    Serialize + for<'de> Deserialize<'de> + std::fmt::Debug + Clone + PartialEq + Eq + Hash + Default
+{
+    fn uniques(&self) -> Vec<U>;
 }
 
 impl UniqueReduce for () {
     fn reduce(self, _other: Self) -> Self {}
 }
 
-impl crate::store::traits::UniqueType for () {}
+impl UniqueType for () {}
 
 /// The core reference type. Every item in every store is addressed by `BackendPointer<S, B>`.
 ///
@@ -49,6 +68,15 @@ impl<S: StoreTypes, B: BackendTypes> BackendPointer<S, B> {
         S::Unique: Default,
     {
         BackendPointer::Single(B::Single::default())
+    }
+
+    /// Returns all unique values carried by this pointer.
+    /// Single pointers return a one-element vec; groups return one per item.
+    pub fn uniques(&self) -> Vec<S::Unique> {
+        match self {
+            BackendPointer::Single(s) => vec![s.unique()],
+            BackendPointer::Group(g) => g.uniques(),
+        }
     }
 }
 
@@ -76,11 +104,11 @@ pub trait BackendAccess<S: StoreTypes, B: Backend> {
         unique: S::Unique,
     ) -> BackendPointer<S, B::Types>;
 
-    fn get_cells(
-        &self,
+    fn get_cells<'a>(
+        &'a mut self,
         pointer: &BackendPointer<S, B::Types>,
-        // TODO: make this a lazy iterator not a vec
-    ) -> Option<Vec<&StoreItemCell<S, B::Types>>>;
+        hints: CacheHints,
+    ) -> Result<Vec<Cow<'a, StoreItemCell<S, B::Types>>>, TdfBinaryError>;
 
     fn group_together(
         &mut self,
@@ -93,35 +121,6 @@ pub trait BackendAccess<S: StoreTypes, B: Backend> {
         &self,
         range: &<B::Types as BackendTypes>::Group<S>,
     ) -> Vec<BackendPointer<S, B::Types>>;
-
-    /// Recursively collect all `(Primitive, Unique)` pairs reachable from `pointer`.
-    fn iter_rec(&self, pointer: &BackendPointer<S, B::Types>) -> Vec<(S::Primitive, S::Unique)>
-    where
-        <B::Types as BackendTypes>::Single<S>: HasUnique<S::Unique>,
-    {
-        match pointer {
-            BackendPointer::Single(s) => {
-                let unique = s.unique();
-                match self.get_cells(pointer) {
-                    Some(cells) => cells
-                        .into_iter()
-                        .filter_map(|cell| match cell {
-                            StoreItemCell::StorePrimitive(p) => Some((p.clone(), unique.clone())),
-                            StoreItemCell::BackendPointer(inner) => {
-                                self.iter_rec(inner).into_iter().next()
-                            }
-                        })
-                        .collect(),
-                    None => vec![],
-                }
-            }
-            BackendPointer::Group(g) => self
-                .expand_group(g)
-                .into_iter()
-                .flat_map(|ptr| self.iter_rec(&ptr))
-                .collect(),
-        }
-    }
 }
 
 pub trait GetStore<Q> {
@@ -132,25 +131,14 @@ pub trait GetStore<Q> {
 pub trait BackendTypes:
     Hash + std::fmt::Debug + Clone + Eq + PartialEq + Serialize + for<'de> Deserialize<'de>
 {
-    type Group<S: StoreTypes>: Serialize
-        + for<'de> Deserialize<'de>
-        + std::fmt::Debug
-        + Clone
-        + PartialEq
-        + Eq
-        + Hash
-        + Default;
-
-    type Single<S: StoreTypes>: Serialize
-        + for<'de> Deserialize<'de>
-        + std::fmt::Debug
-        + Clone
-        + PartialEq
-        + Eq
-        + Hash
-        + Default
-        + HasUnique<S::Unique>;
+    type Group<S: StoreTypes>: GroupPointerType<S::Unique>;
+    type Single<S: StoreTypes>: SinglePointerType<S::Unique>;
 }
+
+use crate::primitives::data::DataTypes;
+use crate::primitives::item::ItemTypes;
+use crate::primitives::page::PageTypes;
+use crate::primitives::signature::SignatureTypes;
 
 /// Physical storage for all four TDF stores.
 pub trait Backend:
@@ -159,6 +147,10 @@ pub trait Backend:
     + GetStore<Self::ItemStore>
     + GetStore<Self::DataStore>
     + GetStore<Self::SigStore>
+    + BackendAccess<PageTypes<Self::Types>, Self>
+    + BackendAccess<ItemTypes<Self::Types>, Self>
+    + BackendAccess<DataTypes, Self>
+    + BackendAccess<SignatureTypes, Self>
 {
     type Types: BackendTypes;
 
