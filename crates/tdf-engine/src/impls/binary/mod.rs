@@ -1,14 +1,12 @@
 //! Binary backend — compact, seekable binary file format.
 
 pub mod backend;
-pub mod builder;
 pub mod cache;
 pub mod document;
 pub mod error;
 pub mod header;
 
 pub use backend::{BinaryBackend, BinaryGroupPointer, BinarySinglePointer, BinaryTypes, Offset};
-pub use builder::BinaryTDFBuilder;
 pub use cache::{BackendCacheKey, BackendCacheValue, BinaryCacheExtract, StoreKind, TdfBinCache};
 pub use error::TdfBinaryError;
 pub use header::BinaryFileHeader;

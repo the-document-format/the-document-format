@@ -153,14 +153,14 @@ impl TdfDocument for BackedDocument<BinaryBackend> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::impls::binary::builder::BinaryTDFBuilder;
+    use crate::builder::TDFBuilder;
     use crate::impls::document::DocumentWrite;
     use crate::primitives::data::{DataPrimitive, ImageData};
     use crate::primitives::item::*;
 
     #[test]
     fn binary_write_has_magic_bytes() {
-        let doc = BinaryTDFBuilder::new()
+        let doc = TDFBuilder::<BinaryBackend>::new()
             .title("test doc")
             .add_page(vec![(
                 ItemPrimitive::Shape(Shape {
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn binary_round_trip_manifest() {
-        let mut builder = BinaryTDFBuilder::new();
+        let mut builder = TDFBuilder::<BinaryBackend>::new();
         let img_ptr = builder.stage_data(DataPrimitive::ImageData(ImageData {
             bytes: vec![0xFF, 0x00, 0xFF],
         }));

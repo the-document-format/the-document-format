@@ -23,11 +23,12 @@ mod tests {
 
     #[test]
     fn test_iter_page_items() {
-        use crate::builder::{DummyTDFBuilder, TDFBuilder};
+        use crate::backend::VecBackend;
+        use crate::builder::TDFBuilder;
         use crate::impls::document::TdfDocumentExt;
         use crate::primitives::item::*;
 
-        let mut reader = DummyTDFBuilder::default()
+        let mut reader = TDFBuilder::<VecBackend>::new()
             .add_page(vec![
                 (
                     ItemPrimitive::Shape(Shape {
@@ -80,11 +81,12 @@ mod tests {
 
     #[test]
     fn test_iter_page_items_primitives_and_positions() {
-        use crate::builder::{DummyTDFBuilder, TDFBuilder};
+        use crate::backend::VecBackend;
+        use crate::builder::TDFBuilder;
         use crate::impls::document::TdfDocumentExt;
         use crate::primitives::item::*;
 
-        let mut reader = DummyTDFBuilder::default()
+        let mut reader = TDFBuilder::<VecBackend>::new()
             .add_page(vec![
                 (
                     ItemPrimitive::Shape(Shape {
@@ -135,12 +137,12 @@ mod tests {
     #[test]
     fn test_round_trip_serialization() {
         use crate::backend::VecBackend;
-        use crate::builder::{DummyTDFBuilder, TDFBuilder};
+        use crate::builder::TDFBuilder;
         use crate::impls::document::TdfDocumentExt;
         use crate::impls::{DocumentWrite, ManifestRead, TDFManifest};
         use crate::primitives::item::*;
 
-        let doc = DummyTDFBuilder::default()
+        let doc = TDFBuilder::<VecBackend>::new()
             .title("Round-trip test")
             .add_page(vec![
                 (

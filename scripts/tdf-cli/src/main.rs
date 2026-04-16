@@ -4,8 +4,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
 use tdf_engine::backend::{CacheHints, VecBackend};
-use tdf_engine::builder::{DummyTDFBuilder, TDFBuilder};
-use tdf_engine::impls::binary::builder::BinaryTDFBuilder;
+use tdf_engine::builder::TDFBuilder;
+use tdf_engine::impls::binary::backend::BinaryBackend;
 use tdf_engine::impls::document::{BackedDocument, TdfDocument};
 use tdf_engine::impls::{DocumentWrite, ManifestRead, TDFManifest, TdfDocumentExt};
 use tdf_engine::primitives::data::{DataPrimitive, ImageData};
@@ -102,7 +102,7 @@ fn cmd_write(path: &std::path::Path, format: &Format) {
 }
 
 fn cmd_write_json(path: &std::path::Path) {
-    let mut builder = DummyTDFBuilder::default();
+    let mut builder = TDFBuilder::<VecBackend>::new();
 
     let squid_ptr = builder.stage_data(DataPrimitive::ImageData(ImageData {
         bytes: squid_rgb_bytes(),
@@ -163,7 +163,7 @@ fn cmd_write_json(path: &std::path::Path) {
 }
 
 fn cmd_write_binary(path: &std::path::Path) {
-    let mut builder = BinaryTDFBuilder::new();
+    let mut builder = TDFBuilder::<BinaryBackend>::new();
 
     let squid_ptr = builder.stage_data(DataPrimitive::ImageData(ImageData {
         bytes: squid_rgb_bytes(),
