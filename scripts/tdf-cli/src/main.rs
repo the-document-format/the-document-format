@@ -3,7 +3,7 @@ use std::io::BufWriter;
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
-use tdf_engine::backend::{CacheHints, VecBackend};
+use tdf_engine::backend::{Backend, CacheHints, VecBackend};
 use tdf_engine::builder::TDFBuilder;
 use tdf_engine::impls::binary::backend::BinaryBackend;
 use tdf_engine::impls::document::{BackedDocument, TdfDocument};
@@ -96,19 +96,26 @@ fn main() {
 
 fn cmd_write(path: &std::path::Path, format: &Format) {
     match format {
-        Format::Json => cmd_write_json(path),
-        Format::Binary => cmd_write_binary(path),
+        Format::Json => {
+            let doc = build_sample_doc(TDFBuilder::<VecBackend>::new());
+            write_doc(path, &doc, "JSON");
+        }
+        Format::Binary => {
+            let doc = build_sample_doc(TDFBuilder::<BinaryBackend>::new());
+            write_doc(path, &doc, "binary");
+        }
     }
 }
 
-fn cmd_write_json(path: &std::path::Path) {
-    let mut builder = TDFBuilder::<VecBackend>::new();
-
+fn build_sample_doc<B: Backend + Default>(mut builder: TDFBuilder<B>) -> BackedDocument<B>
+where
+    BackedDocument<B>: DocumentWrite,
+{
     let squid_ptr = builder.stage_data(DataPrimitive::ImageData(ImageData {
         bytes: squid_rgb_bytes(),
     }));
 
-    let doc = builder
+    builder
         .title("Sample Document")
         .add_page(vec![
             (
@@ -154,73 +161,14 @@ fn cmd_write_json(path: &std::path::Path) {
                 },
             ),
         ])
-        .build();
-
-    let file = File::create(path).expect("failed to create file");
-    let mut writer = BufWriter::new(file);
-    doc.to_writer(&mut writer).expect("failed to write TDF");
-    println!("wrote JSON TDF to {}", path.display());
+        .build()
 }
 
-fn cmd_write_binary(path: &std::path::Path) {
-    let mut builder = TDFBuilder::<BinaryBackend>::new();
-
-    let squid_ptr = builder.stage_data(DataPrimitive::ImageData(ImageData {
-        bytes: squid_rgb_bytes(),
-    }));
-
-    let doc = builder
-        .title("Sample Document")
-        .add_page(vec![
-            (
-                ItemPrimitive::Shape(Shape {
-                    kind: ShapeKind::Circle,
-                }),
-                ItemUnique {
-                    position: Position { x: 10, y: 20 },
-                    ..Default::default()
-                },
-            ),
-            (
-                ItemPrimitive::TextBox(TextBox {
-                    content: "Hello, TDF!".into(),
-                    font: None,
-                }),
-                ItemUnique {
-                    position: Position { x: 50, y: 60 },
-                    ..Default::default()
-                },
-            ),
-        ])
-        .add_page(vec![
-            (
-                ItemPrimitive::TextBox(TextBox {
-                    content: "Page two content".into(),
-                    font: None,
-                }),
-                ItemUnique {
-                    position: Position { x: 0, y: 0 },
-                    ..Default::default()
-                },
-            ),
-            (
-                ItemPrimitive::Image(Image {
-                    width: SQUID_W,
-                    height: SQUID_H,
-                    data: squid_ptr,
-                }),
-                ItemUnique {
-                    position: Position { x: 700, y: 0 },
-                    ..Default::default()
-                },
-            ),
-        ])
-        .build();
-
+fn write_doc(path: &std::path::Path, doc: &impl DocumentWrite, label: &str) {
     let file = File::create(path).expect("failed to create file");
     let mut writer = BufWriter::new(file);
     doc.to_writer(&mut writer).expect("failed to write TDF");
-    println!("wrote binary TDF to {}", path.display());
+    println!("wrote {} TDF to {}", label, path.display());
 }
 
 fn cmd_read(path: &std::path::Path, format: &Format) {

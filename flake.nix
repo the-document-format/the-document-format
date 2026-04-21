@@ -39,6 +39,7 @@
               nil
               nixd
               cargo-release
+              just
             ])
             ++ [
               toolchain
