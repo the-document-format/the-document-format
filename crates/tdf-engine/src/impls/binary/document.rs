@@ -212,6 +212,7 @@ mod tests {
                         width: 100,
                         height: 200,
                         data: img_ptr,
+                        alt: None,
                     }),
                     ItemUnique::default(),
                 ),

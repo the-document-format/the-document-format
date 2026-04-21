@@ -23,7 +23,19 @@
       system:
       let
         pkgs = import nixpkgs { inherit system; };
-        toolchain = fenix.packages.${system}.complete.toolchain;
+        nightly = fenix.packages.${system}.toolchainOf {
+          channel = "nightly";
+          date = "2026-01-30";
+          sha256 = "sha256-sgb5WP79bNLEaZ4IygKSu3zv0LzP1G+7dVx9XdZeRoE=";
+        };
+        toolchain = fenix.packages.${system}.combine [
+          nightly.toolchain
+          (fenix.packages.${system}.targets.wasm32-unknown-unknown.toolchainOf {
+            channel = "nightly";
+            date = "2026-01-30";
+            sha256 = "sha256-sgb5WP79bNLEaZ4IygKSu3zv0LzP1G+7dVx9XdZeRoE=";
+          }).rust-std
+        ];
         treefmtEval = treefmt.lib.evalModule pkgs {
           projectRootFile = "flake.nix";
           programs.nixfmt.enable = true;

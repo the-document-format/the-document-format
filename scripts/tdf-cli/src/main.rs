@@ -154,6 +154,7 @@ where
                     width: SQUID_W,
                     height: SQUID_H,
                     data: squid_ptr,
+                    alt: None,
                 }),
                 ItemUnique {
                     position: Position { x: 700, y: 0 },
