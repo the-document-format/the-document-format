@@ -1,3 +1,5 @@
+// TODO: we might be able to remove this new
+
 use crate::misc::Hash;
 use derive_more::derive::Constructor;
 use serde::{Deserialize, Serialize};

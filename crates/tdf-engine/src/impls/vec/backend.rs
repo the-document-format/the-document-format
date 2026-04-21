@@ -1,10 +1,14 @@
 //! In-memory backend using four Vecs — one per store.
 
+use std::borrow::Cow;
+
 use serde::{Deserialize, Serialize};
 
 use crate::backend::{
-    Backend, BackendAccess, BackendPointer, BackendTypes, GetStore, HasUnique, StoreItemCell,
+    Backend, BackendAccess, BackendPointer, BackendTypes, CacheHints, GetStore, GroupPointerType,
+    SinglePointerType, StoreItemCell,
 };
+use crate::impls::binary::error::TdfBinaryError;
 use crate::primitives::data::DataTypes;
 use crate::primitives::item::ItemTypes;
 use crate::primitives::page::PageTypes;
@@ -76,19 +80,26 @@ where
         BackendPointer::Single(VecSinglePointer { index, unique })
     }
 
-    fn get_cells(
-        &self,
+    fn get_cells<'a>(
+        &'a mut self,
         pointer: &BackendPointer<S, <VecBackend as Backend>::Types>,
-    ) -> Option<Vec<&StoreItemCell<S, <VecBackend as Backend>::Types>>> {
-        let store = self.get_store();
-
+        _hints: CacheHints,
+    ) -> Result<Vec<Cow<'a, StoreItemCell<S, <VecBackend as Backend>::Types>>>, TdfBinaryError>
+    {
+        let store: &VecInnerStoreImpl<S> = self.get_store();
         match pointer {
-            BackendPointer::Single(single) => store.get(single.index).map(|cell| vec![cell]),
+            BackendPointer::Single(single) => {
+                let cell = store
+                    .get(single.index)
+                    .ok_or(TdfBinaryError::InvalidPointerRef)?;
+                Ok(vec![Cow::Borrowed(cell)])
+            }
             BackendPointer::Group(group) => {
                 let range = &group.range;
-                store
+                let slice = store
                     .get(range.start..range.start + range.len)
-                    .map(|slice| slice.iter().collect())
+                    .ok_or(TdfBinaryError::InvalidPointerRef)?;
+                Ok(slice.iter().map(Cow::Borrowed).collect())
             }
         }
     }
@@ -150,7 +161,7 @@ pub struct VecSinglePointer<S: StoreTypes> {
     pub unique: S::Unique,
 }
 
-impl<S: StoreTypes> HasUnique<S::Unique> for VecSinglePointer<S> {
+impl<S: StoreTypes> SinglePointerType<S::Unique> for VecSinglePointer<S> {
     fn unique(&self) -> S::Unique {
         self.unique.clone()
     }
@@ -170,6 +181,12 @@ impl<S: StoreTypes> Default for VecSinglePointer<S> {
 pub struct VecGroupPointer<S: StoreTypes> {
     range: VecRange,
     uniques: Vec<S::Unique>,
+}
+
+impl<S: StoreTypes> GroupPointerType<S::Unique> for VecGroupPointer<S> {
+    fn uniques(&self) -> Vec<S::Unique> {
+        self.uniques.clone()
+    }
 }
 
 impl<S: StoreTypes> Default for VecGroupPointer<S> {

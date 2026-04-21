@@ -4,7 +4,7 @@ use serde::de::DeserializeOwned;
 
 use crate::backend::Backend;
 use crate::impls::document::{
-    BackedDocument, DocumentWrite, ManifestRead, TDFManifest, TdfDocument,
+    BackedDocument, DocumentWrite, ManifestRead, StoreAccess, TDFManifest, TdfDocument,
 };
 use crate::impls::vec::backend::{VecBackend, VecTypes};
 
@@ -33,6 +33,10 @@ impl ManifestRead for TDFManifest<VecTypes> {
         Ok(BackedDocument {
             manifest: self,
             backend,
+            page_frontend: Default::default(),
+            item_frontend: Default::default(),
+            data_frontend: Default::default(),
+            sig_frontend: Default::default(),
         })
     }
 }
@@ -40,12 +44,18 @@ impl ManifestRead for TDFManifest<VecTypes> {
 impl TdfDocument for BackedDocument<VecBackend> {
     type B = VecBackend;
 
-    fn backend(&self) -> &VecBackend {
-        &self.backend
-    }
-
     fn manifest(&self) -> &TDFManifest<VecTypes> {
         &self.manifest
+    }
+
+    fn stores(&mut self) -> StoreAccess<'_, VecBackend> {
+        StoreAccess {
+            backend: &mut self.backend,
+            pages_store: &self.page_frontend,
+            item_store: &self.item_frontend,
+            data_store: &self.data_frontend,
+            signature_store: &self.sig_frontend,
+        }
     }
 }
 

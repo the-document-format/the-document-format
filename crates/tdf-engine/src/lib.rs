@@ -19,13 +19,16 @@ pub mod impls;
 mod tests {
     use std::io::Cursor;
 
+    use crate::backend::CacheHints;
+
     #[test]
     fn test_iter_page_items() {
-        use crate::builder::{DummyTDFBuilder, TDFBuilder};
+        use crate::backend::VecBackend;
+        use crate::builder::TDFBuilder;
         use crate::impls::document::TdfDocumentExt;
         use crate::primitives::item::*;
 
-        let reader = DummyTDFBuilder::default()
+        let mut reader = TDFBuilder::<VecBackend>::new()
             .add_page(vec![
                 (
                     ItemPrimitive::Shape(Shape {
@@ -57,17 +60,17 @@ mod tests {
                     ..Default::default()
                 },
             )])
-            .build(); // writer -> reader
+            .build();
 
-        let items: Vec<_> = reader.iter_page_items(0).collect();
+        let items = reader.iter_page_items(0, CacheHints::Cache);
         assert_eq!(items.len(), 2);
 
-        let items: Vec<_> = reader.iter_page_items(1).collect();
+        let items = reader.iter_page_items(1, CacheHints::Cache);
         assert_eq!(items.len(), 1);
 
         for page in 0..2 {
             println!("--- page {page} ---");
-            for (primitive, unique) in reader.iter_page_items(page) {
+            for (primitive, unique) in reader.iter_page_items(page, CacheHints::Cache) {
                 println!(
                     "  pos=({}, {})  item={primitive:?}",
                     unique.position.x, unique.position.y
@@ -78,11 +81,12 @@ mod tests {
 
     #[test]
     fn test_iter_page_items_primitives_and_positions() {
-        use crate::builder::{DummyTDFBuilder, TDFBuilder};
+        use crate::backend::VecBackend;
+        use crate::builder::TDFBuilder;
         use crate::impls::document::TdfDocumentExt;
         use crate::primitives::item::*;
 
-        let reader = DummyTDFBuilder::default()
+        let mut reader = TDFBuilder::<VecBackend>::new()
             .add_page(vec![
                 (
                     ItemPrimitive::Shape(Shape {
@@ -106,7 +110,7 @@ mod tests {
             ])
             .build();
 
-        let items: Vec<_> = reader.iter_page_items(0).collect();
+        let items = reader.iter_page_items(0, CacheHints::Cache);
         assert_eq!(items.len(), 2);
 
         assert_eq!(
@@ -127,18 +131,18 @@ mod tests {
         assert_eq!(items[1].1.position, Position { x: 3, y: 4 });
 
         // out-of-bounds page returns nothing
-        assert_eq!(reader.iter_page_items(1).count(), 0);
+        assert_eq!(reader.iter_page_items(1, CacheHints::Cache).len(), 0);
     }
 
     #[test]
     fn test_round_trip_serialization() {
         use crate::backend::VecBackend;
-        use crate::builder::{DummyTDFBuilder, TDFBuilder};
+        use crate::builder::TDFBuilder;
         use crate::impls::document::TdfDocumentExt;
         use crate::impls::{DocumentWrite, ManifestRead, TDFManifest};
         use crate::primitives::item::*;
 
-        let doc = DummyTDFBuilder::default()
+        let doc = TDFBuilder::<VecBackend>::new()
             .title("Round-trip test")
             .add_page(vec![
                 (
@@ -186,12 +190,12 @@ mod tests {
         );
         assert_eq!(manifest.pages.page_count(), 2);
 
-        let loaded = manifest
+        let mut loaded = manifest
             .load_backend::<VecBackend, _>(cursor)
             .expect("load_backend failed");
 
         // Page 0: two items at correct positions.
-        let page0: Vec<_> = loaded.iter_page_items(0).collect();
+        let page0 = loaded.iter_page_items(0, CacheHints::Cache);
         assert_eq!(page0.len(), 2);
         assert_eq!(
             page0[0].0,
@@ -210,7 +214,7 @@ mod tests {
         assert_eq!(page0[1].1.position, Position { x: 3, y: 4 });
 
         // Page 1: one item.
-        let page1: Vec<_> = loaded.iter_page_items(1).collect();
+        let page1 = loaded.iter_page_items(1, CacheHints::Cache);
         assert_eq!(page1.len(), 1);
         assert_eq!(
             page1[0].0,
@@ -221,7 +225,7 @@ mod tests {
         );
 
         // Out-of-bounds.
-        assert_eq!(loaded.iter_page_items(2).count(), 0);
+        assert_eq!(loaded.iter_page_items(2, CacheHints::Cache).len(), 0);
     }
 
     #[test]

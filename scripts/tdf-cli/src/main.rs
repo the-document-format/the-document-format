@@ -2,10 +2,12 @@ use std::fs::File;
 use std::io::BufWriter;
 use std::path::PathBuf;
 
-use clap::{Parser, Subcommand};
-use tdf_engine::backend::VecBackend;
-use tdf_engine::builder::{DummyTDFBuilder, TDFBuilder};
-use tdf_engine::impls::{DocumentWrite, ManifestRead, TDFManifest, TdfDocument, TdfDocumentExt};
+use clap::{Parser, Subcommand, ValueEnum};
+use tdf_engine::backend::{CacheHints, VecBackend};
+use tdf_engine::builder::TDFBuilder;
+use tdf_engine::impls::binary::backend::BinaryBackend;
+use tdf_engine::impls::document::{BackedDocument, TdfDocument};
+use tdf_engine::impls::{DocumentWrite, ManifestRead, TDFManifest, TdfDocumentExt};
 use tdf_engine::primitives::data::{DataPrimitive, ImageData};
 use tdf_engine::primitives::item::{
     Image, ItemPrimitive, ItemUnique, Position, Shape, ShapeKind, TextBox,
@@ -54,6 +56,13 @@ fn squid_rgb_bytes() -> Vec<u8> {
         .collect()
 }
 
+#[derive(ValueEnum, Clone, Default)]
+enum Format {
+    #[default]
+    Json,
+    Binary,
+}
+
 #[derive(Parser)]
 #[command(name = "tdf-cli", about = "Read and write TDF documents")]
 struct Cli {
@@ -64,21 +73,36 @@ struct Cli {
 #[derive(Subcommand)]
 enum Command {
     /// Write a hardcoded TDF document to a file
-    Write { path: PathBuf },
+    Write {
+        path: PathBuf,
+        #[arg(long, value_enum, default_value_t = Format::Json)]
+        format: Format,
+    },
     /// Read a TDF document from a file and print its contents
-    Read { path: PathBuf },
+    Read {
+        path: PathBuf,
+        #[arg(long, value_enum, default_value_t = Format::Json)]
+        format: Format,
+    },
 }
 
 fn main() {
     let cli = Cli::parse();
     match cli.command {
-        Command::Write { path } => cmd_write(&path),
-        Command::Read { path } => cmd_read(&path),
+        Command::Write { path, format } => cmd_write(&path, &format),
+        Command::Read { path, format } => cmd_read(&path, &format),
     }
 }
 
-fn cmd_write(path: &std::path::Path) {
-    let mut builder = DummyTDFBuilder::default();
+fn cmd_write(path: &std::path::Path, format: &Format) {
+    match format {
+        Format::Json => cmd_write_json(path),
+        Format::Binary => cmd_write_binary(path),
+    }
+}
+
+fn cmd_write_json(path: &std::path::Path) {
+    let mut builder = TDFBuilder::<VecBackend>::new();
 
     let squid_ptr = builder.stage_data(DataPrimitive::ImageData(ImageData {
         bytes: squid_rgb_bytes(),
@@ -125,7 +149,7 @@ fn cmd_write(path: &std::path::Path) {
                     data: squid_ptr,
                 }),
                 ItemUnique {
-                    position: Position { x: 700, y: 0 }, // top right
+                    position: Position { x: 700, y: 0 },
                     ..Default::default()
                 },
             ),
@@ -135,10 +159,78 @@ fn cmd_write(path: &std::path::Path) {
     let file = File::create(path).expect("failed to create file");
     let mut writer = BufWriter::new(file);
     doc.to_writer(&mut writer).expect("failed to write TDF");
-    println!("wrote TDF to {}", path.display());
+    println!("wrote JSON TDF to {}", path.display());
 }
 
-fn cmd_read(path: &std::path::Path) {
+fn cmd_write_binary(path: &std::path::Path) {
+    let mut builder = TDFBuilder::<BinaryBackend>::new();
+
+    let squid_ptr = builder.stage_data(DataPrimitive::ImageData(ImageData {
+        bytes: squid_rgb_bytes(),
+    }));
+
+    let doc = builder
+        .title("Sample Document")
+        .add_page(vec![
+            (
+                ItemPrimitive::Shape(Shape {
+                    kind: ShapeKind::Circle,
+                }),
+                ItemUnique {
+                    position: Position { x: 10, y: 20 },
+                    ..Default::default()
+                },
+            ),
+            (
+                ItemPrimitive::TextBox(TextBox {
+                    content: "Hello, TDF!".into(),
+                    font: None,
+                }),
+                ItemUnique {
+                    position: Position { x: 50, y: 60 },
+                    ..Default::default()
+                },
+            ),
+        ])
+        .add_page(vec![
+            (
+                ItemPrimitive::TextBox(TextBox {
+                    content: "Page two content".into(),
+                    font: None,
+                }),
+                ItemUnique {
+                    position: Position { x: 0, y: 0 },
+                    ..Default::default()
+                },
+            ),
+            (
+                ItemPrimitive::Image(Image {
+                    width: SQUID_W,
+                    height: SQUID_H,
+                    data: squid_ptr,
+                }),
+                ItemUnique {
+                    position: Position { x: 700, y: 0 },
+                    ..Default::default()
+                },
+            ),
+        ])
+        .build();
+
+    let file = File::create(path).expect("failed to create file");
+    let mut writer = BufWriter::new(file);
+    doc.to_writer(&mut writer).expect("failed to write TDF");
+    println!("wrote binary TDF to {}", path.display());
+}
+
+fn cmd_read(path: &std::path::Path, format: &Format) {
+    match format {
+        Format::Json => cmd_read_json(path),
+        Format::Binary => cmd_read_binary(path),
+    }
+}
+
+fn cmd_read_json(path: &std::path::Path) {
     let mut file = File::open(path).expect("failed to open file");
     let manifest = TDFManifest::<tdf_engine::impls::vec::backend::VecTypes>::from_reader(&mut file)
         .expect("failed to read manifest");
@@ -146,13 +238,32 @@ fn cmd_read(path: &std::path::Path) {
     println!("title: {:?}", manifest.meta.document_title);
     println!("pages: {}", manifest.pages.page_count());
 
-    let doc = manifest
+    let mut doc = manifest
         .load_backend::<VecBackend, _>(file)
         .expect("failed to load backend");
 
-    for page_num in 0..doc.manifest().pages.page_count() {
+    print_doc_items(&mut doc);
+}
+
+fn cmd_read_binary(path: &std::path::Path) {
+    let mut file = File::open(path).expect("failed to open file");
+    let mut doc =
+        BackedDocument::<tdf_engine::impls::binary::backend::BinaryBackend>::from_binary_reader(
+            &mut file,
+        )
+        .expect("failed to read binary TDF");
+
+    println!("title: {:?}", doc.manifest().meta.document_title);
+    println!("pages: {}", doc.manifest().pages.page_count());
+
+    print_doc_items(&mut doc);
+}
+
+fn print_doc_items<D: TdfDocumentExt>(doc: &mut D) {
+    let page_count = doc.manifest().pages.page_count();
+    for page_num in 0..page_count {
         println!("\n--- page {} ---", page_num);
-        for (item, unique) in doc.iter_page_items(page_num) {
+        for (item, unique) in doc.iter_page_items(page_num, CacheHints::Cache) {
             println!("  position: ({}, {})", unique.position.x, unique.position.y);
             match item {
                 ItemPrimitive::TextBox(t) => println!("  text: {:?}", t.content),
@@ -171,7 +282,6 @@ fn cmd_read(path: &std::path::Path) {
                                 for x in 0..w {
                                     let t = &top[x * 3..x * 3 + 3];
                                     let b = &bot[x * 3..x * 3 + 3];
-                                    // bg = top pixel, fg = bottom pixel, ▄ fills lower half
                                     print!(
                                         "\x1b[48;2;{};{};{}m\x1b[38;2;{};{};{}m▄\x1b[0m",
                                         t[0], t[1], t[2], b[0], b[1], b[2]

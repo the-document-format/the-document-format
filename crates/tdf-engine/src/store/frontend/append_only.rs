@@ -1,6 +1,9 @@
 //! AppendOnlyStore: insertion order is preserved and meaningful.
 
-use crate::backend::{Backend, BackendAccess, BackendPointer, StoreItemCell};
+use std::borrow::Cow;
+
+use crate::backend::{Backend, BackendAccess, BackendPointer, CacheHints, StoreItemCell};
+use crate::impls::binary::error::TdfBinaryError;
 use crate::store::frontend::Frontend;
 use crate::store::traits::StoreTypes;
 
@@ -12,7 +15,7 @@ pub struct AppendOnlyFrontend<S: StoreTypes, B: Backend> {
 }
 
 impl<S: StoreTypes, B: Backend> AppendOnlyFrontend<S, B> {
-    pub fn new(offset: usize) -> Self {
+    pub fn new(_offset: usize) -> Self {
         AppendOnlyFrontend {
             _s: std::marker::PhantomData,
             _b: std::marker::PhantomData,
@@ -41,11 +44,10 @@ impl<S: StoreTypes, B: Backend + BackendAccess<S, B>> Frontend<B> for AppendOnly
     fn get<'a>(
         &self,
         pointer: &BackendPointer<S, B::Types>,
-        backend: &'a B,
-    ) -> Option<&'a StoreItemCell<S, B::Types>> {
-        backend
-            .get_cells(pointer)
-            .and_then(|cells| cells.into_iter().next())
+        backend: &'a mut B,
+        cache_hints: CacheHints,
+    ) -> Result<Vec<Cow<'a, StoreItemCell<S, B::Types>>>, TdfBinaryError> {
+        backend.get_cells(pointer, cache_hints)
     }
 
     fn size(&self, _backend: &B) -> usize {

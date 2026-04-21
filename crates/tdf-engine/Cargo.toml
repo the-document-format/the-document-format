@@ -3,6 +3,8 @@ serde = {version = "1.0.228", features = ["derive"]}
 serde_json = "1.0.149"
 derive_more = {version = "1.0.0", features = ["constructor"]}
 thiserror = "2.0.18"
+bincode-next = {version = "2.1.0", features = ["serde"]}
+schnellru = "0.2"
 
 [lib]
 path = "src/lib.rs"
