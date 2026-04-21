@@ -147,6 +147,7 @@ fn cmd_write_json(path: &std::path::Path) {
                     width: SQUID_W,
                     height: SQUID_H,
                     data: squid_ptr,
+                    alt: None,
                 }),
                 ItemUnique {
                     position: Position { x: 700, y: 0 },
@@ -208,6 +209,7 @@ fn cmd_write_binary(path: &std::path::Path) {
                     width: SQUID_W,
                     height: SQUID_H,
                     data: squid_ptr,
+                    alt: None,
                 }),
                 ItemUnique {
                     position: Position { x: 700, y: 0 },

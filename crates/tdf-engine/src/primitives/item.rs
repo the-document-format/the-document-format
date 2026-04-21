@@ -33,6 +33,7 @@ pub struct Image<B: BackendTypes> {
     pub width: u32,
     pub height: u32,
     pub data: DataStorePointer<B>,
+    pub alt: Option<String>,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
