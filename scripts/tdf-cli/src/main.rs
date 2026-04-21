@@ -1,5 +1,5 @@
 use std::fs::File;
-use std::io::BufWriter;
+use std::io::{self, BufWriter, Write};
 use std::path::PathBuf;
 
 use clap::{Parser, Subcommand, ValueEnum};
@@ -75,22 +75,38 @@ enum Command {
     /// Write a hardcoded TDF document to a file
     Write {
         path: PathBuf,
-        #[arg(long, value_enum, default_value_t = Format::Json)]
-        format: Format,
+        #[arg(long, value_enum)]
+        format: Option<Format>,
     },
     /// Read a TDF document from a file and print its contents
     Read {
         path: PathBuf,
-        #[arg(long, value_enum, default_value_t = Format::Json)]
-        format: Format,
+        #[arg(long, value_enum)]
+        format: Option<Format>,
     },
+}
+
+fn detect_format(path: &std::path::Path, explicit: Option<Format>) -> Format {
+    if let Some(f) = explicit {
+        return f;
+    }
+    match path.extension().and_then(|e| e.to_str()) {
+        Some("tdf") => Format::Binary,
+        _ => Format::Json, // .tdfi or anything else
+    }
 }
 
 fn main() {
     let cli = Cli::parse();
     match cli.command {
-        Command::Write { path, format } => cmd_write(&path, &format),
-        Command::Read { path, format } => cmd_read(&path, &format),
+        Command::Write { path, format } => {
+            let format = detect_format(&path, format);
+            cmd_write(&path, &format);
+        }
+        Command::Read { path, format } => {
+            let format = detect_format(&path, format);
+            cmd_read(&path, &format);
+        }
     }
 }
 
@@ -191,7 +207,7 @@ fn cmd_read_json(path: &std::path::Path) {
         .load_backend::<VecBackend, _>(file)
         .expect("failed to load backend");
 
-    print_doc_items(&mut doc);
+    read_with_nav(&mut doc);
 }
 
 fn cmd_read_binary(path: &std::path::Path) {
@@ -205,12 +221,35 @@ fn cmd_read_binary(path: &std::path::Path) {
     println!("title: {:?}", doc.manifest().meta.document_title);
     println!("pages: {}", doc.manifest().pages.page_count());
 
-    print_doc_items(&mut doc);
+    read_with_nav(&mut doc);
 }
 
-fn print_doc_items<D: TdfDocumentExt>(doc: &mut D) {
+fn read_with_nav<D: TdfDocumentExt>(doc: &mut D) {
     let page_count = doc.manifest().pages.page_count();
-    for page_num in 0..page_count {
+    println!("{page_count} pages total");
+    loop {
+        let start = loop {
+            print!("Go to page (0–{}, q to quit): ", page_count - 1);
+            io::stdout().flush().unwrap();
+            let mut input = String::new();
+            io::stdin().read_line(&mut input).unwrap();
+            let trimmed = input.trim();
+            if trimmed == "q" {
+                return;
+            } else if let Ok(n) = trimmed.parse::<usize>() {
+                break n.min(page_count - 1);
+            } else {
+                println!("enter a page number or q");
+            }
+        };
+        print_page_window(doc, start, 3);
+    }
+}
+
+fn print_page_window<D: TdfDocumentExt>(doc: &mut D, start: usize, count: usize) {
+    let page_count = doc.manifest().pages.page_count();
+    let end = (start + count).min(page_count);
+    for page_num in start..end {
         println!("\n--- page {} ---", page_num);
         for (item, unique) in doc.iter_page_items(page_num, CacheHints::Cache) {
             println!("  position: ({}, {})", unique.position.x, unique.position.y);

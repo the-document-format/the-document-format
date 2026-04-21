@@ -18,17 +18,9 @@ use crate::store::traits::StoreTypes;
 use super::cache::{BackendCacheKey, BinaryCacheExtract, TdfBinCache};
 use super::error::TdfBinaryError;
 
-// ---------------------------------------------------------------------------
-// Offset newtype
-// ---------------------------------------------------------------------------
-
 // TODO: we should add an accessor method
 #[derive(Serialize, Deserialize, Debug, Clone, Copy, PartialEq, Eq, Hash, Default, Constructor)]
 pub struct Offset(pub u64);
-
-// ---------------------------------------------------------------------------
-// Pointer types
-// ---------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash)]
 pub struct BinarySinglePointer<S: StoreTypes> {
@@ -74,9 +66,7 @@ impl<S: StoreTypes> Default for BinaryGroupPointer<S> {
     }
 }
 
-// ---------------------------------------------------------------------------
 // BinaryTypes marker
-// ---------------------------------------------------------------------------
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct BinaryTypes;
@@ -86,9 +76,7 @@ impl BackendTypes for BinaryTypes {
     type Group<S: StoreTypes> = BinaryGroupPointer<S>;
 }
 
-// ---------------------------------------------------------------------------
 // Store byte newtypes (so GetStore<Q> can dispatch)
-// ---------------------------------------------------------------------------
 
 #[derive(Debug, Default)]
 pub struct PageStoreBytes(pub Vec<u8>);
@@ -98,10 +86,6 @@ pub struct ItemStoreBytes(pub Vec<u8>);
 pub struct DataStoreBytes(pub Vec<u8>);
 #[derive(Debug, Default)]
 pub struct SigStoreBytes(pub Vec<u8>);
-
-// ---------------------------------------------------------------------------
-// BinaryBackend
-// ---------------------------------------------------------------------------
 
 #[derive(Debug)]
 pub struct BinaryBackend {
@@ -165,10 +149,6 @@ impl Default for BinaryBackend {
     }
 }
 
-// ---------------------------------------------------------------------------
-// GetStore impls
-// ---------------------------------------------------------------------------
-
 macro_rules! impl_get_store_binary {
     ($store_ty:ty, $field:ident) => {
         impl GetStore<$store_ty> for BinaryBackend {
@@ -195,10 +175,7 @@ impl Backend for BinaryBackend {
     type SigStore = SigStoreBytes;
 }
 
-// ---------------------------------------------------------------------------
-// BinaryStoreAccess — maps StoreTypes → the right Vec<u8> field
-// ---------------------------------------------------------------------------
-
+// BinaryStoreAccess — maps StoreTypes -> the right Vec<u8> field
 pub trait BinaryStoreAccess: StoreTypes + BinaryCacheExtract {
     fn store_bytes(backend: &BinaryBackend) -> &Vec<u8>;
     fn store_bytes_mut(backend: &mut BinaryBackend) -> &mut Vec<u8>;
@@ -222,9 +199,7 @@ impl_binary_store_access!(ItemTypes<BinaryTypes>, item_store);
 impl_binary_store_access!(DataTypes, data_store);
 impl_binary_store_access!(SignatureTypes, sig_store);
 
-// ---------------------------------------------------------------------------
 // BackendAccess — single generic impl for all four stores
-// ---------------------------------------------------------------------------
 
 impl<S> BackendAccess<S, BinaryBackend> for BinaryBackend
 where

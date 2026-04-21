@@ -1,9 +1,9 @@
 [dependencies]
-femtovg.workspace = true
 # Activate JPEG decoding in the `image` crate instance that femtovg pulls in.
 # femtovg declares `image` with default-features=false, so without this no
 # formats are enabled.
 image = {version = "0.25", default-features = false, features = ["jpeg"]}
+femtovg.workspace = true
 tdf-engine.workspace = true
 
 [package]

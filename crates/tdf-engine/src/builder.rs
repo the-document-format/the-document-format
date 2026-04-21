@@ -59,11 +59,10 @@ impl<B: Backend + Default> TDFBuilder<B> {
                 .map(|(prim, uniq)| self.item_frontend.push(prim, uniq, &mut self.backend))
                 .collect();
 
-            let item_group =
-                <B as BackendAccess<ItemTypes<B::Types>, B>>::group_together(
-                    &mut self.backend,
-                    item_ptrs,
-                );
+            let item_group = <B as BackendAccess<ItemTypes<B::Types>, B>>::group_together(
+                &mut self.backend,
+                item_ptrs,
+            );
 
             let page_ptr = self.page_frontend.push(
                 PageStorePrimitive {

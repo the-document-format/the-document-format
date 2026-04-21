@@ -1,6 +1,6 @@
 pub use femtovg;
 
-use femtovg::{renderer::Renderer, Baseline, Canvas, Color, FontId, ImageFlags, Paint, Path};
+use femtovg::{Baseline, Canvas, Color, FontId, ImageFlags, Paint, Path, renderer::Renderer};
 pub use tdf_engine;
 use tdf_engine::backend::{CacheHints, VecBackend};
 pub use tdf_engine::impls::TdfDocument;

@@ -2,9 +2,15 @@
 name = "tdf-cli"
 path = "src/main.rs"
 
+[[bin]]
+name = "tdf-interactive"
+path = "src/interactive.rs"
+
 [dependencies]
 tdf-engine = {path = "../../crates/tdf-engine"}
 clap = {version = "4", features = ["derive"]}
+crossterm = "0.28"
+krilla = "0.7"
 image = "0.25"
 viuer = "0.8"
 
